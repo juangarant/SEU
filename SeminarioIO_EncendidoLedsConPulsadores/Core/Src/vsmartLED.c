@@ -2,7 +2,7 @@
 #include "main.h"
 #include <stdio.h>
 
-#define DEBOUNCE_TIME 50  // ms
+#define DEBOUNCE_TIME 200  // ms
 
 static uint8_t countL = 0;
 static uint8_t countR = 0;
@@ -48,6 +48,7 @@ void statusLED(void) {
 
             if (countR >= 2)
             {
+                lastStateL = 0;
                 HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
                 countR = 0;
                 printf("Apagar");
