@@ -45,6 +45,15 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/main.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/adc_utils.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/sensor.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/ldr.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/ntc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/potenciometro.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/botones.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/alarma.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Core/Src/display_leds.c
 )
 
 # Add include paths
