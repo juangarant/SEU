@@ -6,11 +6,11 @@ set(CMAKE_CXX_COMPILER_ID GNU)
 
 # Some default GCC settings
 # arm-none-eabi- must be part of path environment
-set(TOOLCHAIN_PREFIX                "C:/muiinf-seu/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.14.3.rel1.win32_1.0.100.202602081740/tools/bin/arm-none-eabi-")
+set(TOOLCHAIN_PREFIX                arm-none-eabi-)
 
-set(CMAKE_C_COMPILER                ${TOOLCHAIN_PREFIX}gcc.exe)
+set(CMAKE_C_COMPILER                ${TOOLCHAIN_PREFIX}gcc)
 set(CMAKE_ASM_COMPILER              ${CMAKE_C_COMPILER})
-set(CMAKE_CXX_COMPILER              ${TOOLCHAIN_PREFIX}g++.exe)
+set(CMAKE_CXX_COMPILER              ${TOOLCHAIN_PREFIX}g++)
 set(CMAKE_LINKER                    ${TOOLCHAIN_PREFIX}g++)
 set(CMAKE_OBJCOPY                   ${TOOLCHAIN_PREFIX}objcopy)
 set(CMAKE_SIZE                      ${TOOLCHAIN_PREFIX}size)
