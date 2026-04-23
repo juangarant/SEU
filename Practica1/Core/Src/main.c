@@ -85,7 +85,7 @@ int main(void)
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
-  HAL_Init();
+   HAL_Init();
 
   /* USER CODE BEGIN Init */
 
