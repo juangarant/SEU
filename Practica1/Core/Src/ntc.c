@@ -22,7 +22,7 @@ volatile sensor_t ntc;
 void NTC_Init(void)
 {
     /* Rango de visualización: 25 °C (mínimo) – 30 °C (máximo) */
-    Sensor_Init((sensor_t *)&ntc, 25.0f, 30.0f);
+    Sensor_Init((sensor_t *)&ntc, 25.0f, 36.0f);
 }
 
 /* ------------------------------------------------------------------ */
