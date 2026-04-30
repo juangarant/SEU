@@ -1,0 +1,319 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- 1. Configuración de Idioma y Formato ---
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{booktabs} % Para tablas elegantes
+\usepackage{fancyhdr} % Para encabezados y pies de página
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{caption}
+\captionsetup[figure]{labelfont=bf, textfont=normalfont, labelsep=colon}
+
+% --- Configuración de Bibliografía ---
+\usepackage[backend=biber, style=ieee]{biblatex} % Estilo APA (o usa 'numeric')
+\addbibresource{memoria.bib} % Tu archivo .bib
+
+% --- 2. Configuración para Código Fuente (YAML/Bash) ---
+\usepackage{listings}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{backcolour}{rgb}{0.96,0.96,0.94}
+
+\setlength{\parskip}{0.7em}
+
+\addtolength{\skip\footins}{20pt}
+
+
+
+\lstdefinestyle{techstyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{blue},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{orange},
+    basicstyle=\ttfamily\small,
+    breaklines=true,                 
+    captionpos=b,                    
+    numbers=left,                    
+    showstringspaces=false,
+    tabsize=2,
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+}
+\lstset{style=techstyle}
+
+% Define YAML language for listings
+\lstdefinelanguage{yaml}{
+    backgroundcolor=\color{gris-claro},
+    frame=single,                % Caja cerrada sencilla
+    rulecolor=\color{gris-borde}, % Color del borde
+    basicstyle=\ttfamily\small,  % Fuente monoespaciada
+    breaklines=true,             % Cortar líneas largas
+    xleftmargin=10pt,            % Margen izquierdo
+    xrightmargin=10pt,           % Margen derecho
+    showstringspaces=false,
+    keywordstyle=\color{blue},   % Comandos en azul
+    commentstyle=\color{gray},   % Comentarios en gris
+    captionpos=t,                % Título arriba
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+}
+
+\definecolor{gris-claro}{rgb}{0.97,0.97,0.97}
+\definecolor{gris-borde}{rgb}{0.8,0.8,0.8}
+
+\lstdefinestyle{cajabasica}{
+    backgroundcolor=\color{gris-claro},
+    frame=single,                % Caja cerrada sencilla
+    rulecolor=\color{gris-borde}, % Color del borde
+    basicstyle=\ttfamily\small,  % Fuente monoespaciada
+    breaklines=true,             % Cortar líneas largas
+    xleftmargin=10pt,            % Margen izquierdo
+    xrightmargin=10pt,           % Margen derecho
+    showstringspaces=false,
+    keywordstyle=\color{blue},   % Comandos en azul
+    commentstyle=\color{gray},   % Comentarios en gris
+    captionpos=t,                % Título arriba
+    literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1 {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+}
+
+% --- 3. Encabezado y Pie de Página ---
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Entregable 1 -- Monitor}
+\rhead{\thepage}
+\cfoot{Julen García Muñoz}
+% --- 4. Información de la Portada ---
+\title{
+    \vspace{2cm}
+    \textbf{Entregable 1 -- Monitor}
+}
+\author{Julen García Muñoz}
+\date{\today}
+
+% --- 5. Inicio del Documento ---
+\begin{document}
+
+\maketitle
+\vfill
+\begin{center}
+    \textbf{Sistemas empotrados y ubicuos -- SEU} \\
+    Entregable 1 -- Monitor
+\end{center}
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{Módulo Monitor}
+
+\subsection{Descripción General}
+El módulo \texttt{monitor.c} implementa un sistema de monitoreo de sensores para una placa STM32F411 con interfaz de LEDs, buzzer y botones. El sistema permite la lectura de dos sensores (LDR para luminosidad y NTC para temperatura), ajuste de niveles de alarma mediante potenciómetro, visualización en LEDs y activación de alarma sonora.
+
+\subsection{Constantes}
+
+\subsubsection{Constantes NTC}
+\begin{lstlisting}[language=C, caption=Parámetros del termistor NTC]
+#define R25    10000.0f  // Resistencia a 25 deg C en ohmios
+#define T25    298.15f   // Temperatura de referencia en Kelvin (25 deg C)
+#define BETA   3900.0f   // Coeficiente Beta del termistor
+\end{lstlisting}
+
+\subsubsection{Canales ADC}
+\begin{lstlisting}[language=C, caption=Asignación de canales ADC]
+#define CH_LDR ADC_CHANNEL_0   // Canal para sensor LDR
+#define CH_NTC ADC_CHANNEL_1   // Canal para sensor NTC
+#define CH_POT ADC_CHANNEL_4   // Canal para potenciómetro
+\end{lstlisting}
+
+\subsection{Tipos de Datos}
+
+\subsubsection{Estructura sensor\_t}
+\begin{lstlisting}[language=C, caption=Estructura para almacenar datos de sensores]
+typedef struct {
+    float valor;                  // Valor actual del sensor
+    float minimo;                 // Valor mínimo de rango
+    float maximo;                 // Valor máximo de rango
+    float nivel_alarma;           // Umbral de activación de alarma
+    int activated;                // Flag de activación
+    uint32_t time_activation;     // Timestamp de activación
+    int value_flashing;           // Estado del parpadeo
+    uint32_t flashing_last_time;  // Timestamp del último cambio de parpadeo
+} sensor_t;
+\end{lstlisting}
+
+\subsubsection{Enumeración alarm\_state\_t}
+\begin{lstlisting}[language=C, caption=Estados posibles de la alarma]
+typedef enum { 
+    ALARM_IDLE,      // Alarma inactiva
+    ALARM_ACTIVE,    // Alarma activada/sonando
+    ALARM_COOLDOWN   // Período de enfriamiento (10 segundos)
+} alarm_state_t;
+\end{lstlisting}
+\subsection{Variables Globales}
+
+\subsubsection{Sensores}
+\begin{lstlisting}[language=C, caption=Instancias globales de sensores]
+sensor_t sensor_ldr = {0.0f, 0.0f, 100.0f, 50.0f, 0, 0, 0, 0};
+// valor=0, min=0%, max=100%, umbral=50%
+
+sensor_t sensor_ntc = {0.0f, 25.0f, 30.0f, 27.5f, 0, 0, 0, 0};
+// valor=0, min=25 deg C, max=30 deg C, umbral=27.5 deg C
+\end{lstlisting}
+
+\subsubsection{Control de Sensores}
+\begin{lstlisting}[language=C, caption=Variables de control]
+uint8_t selected_sensor = 0;        // Sensor activo: 0=LDR, 1=NTC
+uint32_t last_pot_value = 0xFFFF;   // Valor anterior del potenciómetro
+alarm_state_t alarm_state = ALARM_IDLE;     // Estado de la alarma
+uint32_t alarm_cooldown_start = 0;  // Timestamp del inicio del cooldown
+uint8_t btn_izq_last = 1;           // Estado anterior botón izquierdo
+uint8_t btn_der_last = 1;           // Estado anterior botón derecho
+\end{lstlisting}
+
+\subsubsection{LEDs}
+\begin{lstlisting}[language=C, caption=Mapeo de pines LED]
+GPIO_TypeDef* LED_PORT[8] = {LED8_GPIO_Port, LED7_GPIO_Port, 
+                             LED6_GPIO_Port, LED5_GPIO_Port, 
+                             LED4_GPIO_Port, LED3_GPIO_Port, 
+                             LED2_GPIO_Port, LED1_GPIO_Port};
+uint16_t LED_PIN[8] = {LED8_Pin, LED7_Pin, LED6_Pin, LED5_Pin, 
+                       LED4_Pin, LED3_Pin, LED2_Pin, LED1_Pin};
+\end{lstlisting}
+
+\subsection{Funciones Privadas}
+
+\subsubsection{ADC\_ReadChannel()}
+\begin{lstlisting}[language=C, caption=Lectura de canal ADC]
+static uint32_t ADC_ReadChannel(uint32_t channel)
+\end{lstlisting}
+
+\textbf{Descripción:} Lee el valor digital de un canal ADC específico.
+
+\textbf{Parámetros:}
+\begin{itemize}
+    \item \texttt{channel}: identificador del canal ADC a leer
+\end{itemize}
+
+\textbf{Retorna:} Valor digital de 12 bits (0-4095)
+
+\textbf{Detalles:}
+\begin{itemize}
+    \item Configura el canal
+    \item Inicia conversión ADC
+    \item Espera a que la conversión termine
+    \item Obtiene el valor y detiene el ADC
+\end{itemize}
+
+\subsubsection{Update\_Sensors()}
+\begin{lstlisting}[language=C, caption=Actualización de valores de sensores]
+static void Update_Sensors(void)
+\end{lstlisting}
+
+\textbf{Descripción:} Actualiza los valores de los sensores LDR, NTC y el potenciómetro.
+
+\textbf{Funcionalidad:}
+\begin{itemize}
+    \item \textbf{LDR:} Convierte lectura ADC a porcentaje (0-100\%), invertida (mayor ADC = menor luminosidad)
+    \item \textbf{NTC:} Calcula temperatura en $^\circ$C usando ecuación de Steinhart-Hart
+    \item \textbf{Potenciómetro:} Ajusta el nivel de alarma del sensor actualmente seleccionado con histéresis de 30 unidades para evitar ruido
+\end{itemize}
+
+\subsubsection{Update\_Display()}
+\begin{lstlisting}[language=C, caption=Actualización de visualización en LEDs]
+static void Update_Display(void)
+\end{lstlisting}
+
+\textbf{Descripción:} Controla el encendido/apagado de LEDs según el valor del sensor activo.
+
+\textbf{Funcionalidad:}
+\begin{itemize}
+    \item Calcula cuántos LEDs deben estar encendidos basándose en el valor relativo del sensor
+    \item Identifica el LED que corresponde al umbral de alarma
+    \item Genera parpadeo a 10 Hz en el LED del umbral
+    \item Actualiza el estado de todos los LEDs
+\end{itemize}
+
+\subsubsection{Update\_Alarm()}
+\begin{lstlisting}[language=C, caption=Actualización del estado de alarma]
+static void Update_Alarm(void)
+\end{lstlisting}
+
+\textbf{Descripción:} Gestiona la máquina de estados de la alarma.
+
+\textbf{Estados:}
+\begin{itemize}
+    \item \textbf{ALARM\_IDLE:} Monitorea si algún sensor supera su umbral
+    \item \textbf{ALARM\_ACTIVE:} Alarma sonando, se mantiene hasta pulsar botón derecho
+    \item \textbf{ALARM\_COOLDOWN:} Período de 10 segundos antes de poder activar nuevamente
+\end{itemize}
+
+\subsubsection{Process\_Buttons()}
+\begin{lstlisting}[language=C, caption=Procesamiento de entrada de botones]
+static void Process_Buttons(void)
+\end{lstlisting}
+
+\textbf{Descripción:} Detecta pulsaciones de botones y ejecuta acciones correspondientes.
+
+\textbf{Acciones:}
+\begin{itemize}
+    \item \textbf{Botón Izquierdo:} Cambia el sensor activo entre LDR (0) y NTC (1)
+    \item \textbf{Botón Derecho:} Desactiva la alarma y entra en período de cooldown si está activa
+\end{itemize}
+
+\textbf{Implementación:} Detecta flancos descendentes.
+
+\subsection{Funciones Públicas}
+
+\subsubsection{Monitor\_Init()}
+\begin{lstlisting}[language=C, caption=Inicialización del módulo]
+void Monitor_Init(void)
+\end{lstlisting}
+
+\textbf{Descripción:} Inicializa el módulo de monitoreo.
+
+\textbf{Funcionalidad:}
+\begin{itemize}
+    \item Apaga todos los LEDs (GPIO\_PIN\_RESET)
+    \item Apaga el buzzer
+\end{itemize}
+
+\textbf{Debe llamarse:} Una vez en la función \texttt{main()} durante la inicialización del sistema.
+
+\subsubsection{Monitor\_Loop()}
+\begin{lstlisting}[language=C, caption=Bucle principal de monitoreo]
+void Monitor_Loop(void)
+\end{lstlisting}
+
+\textbf{Descripción:} Función principal que debe llamarse periódicamente desde el bucle principal.
+
+\textbf{Ciclo de ejecución:} Se ejecuta cada 20 ms (50 Hz)
+
+\textbf{Secuencia de operaciones:}
+\begin{enumerate}
+    \item \texttt{Process\_Buttons()}: Procesa entrada de botones
+    \item \texttt{Update\_Sensors()}: Actualiza valores de sensores
+    \item \texttt{Update\_Alarm()}: Gestiona estado de alarma
+    \item \texttt{Update\_Display()}: Actualiza visualización en LEDs
+\end{enumerate}
+
+\textbf{Temporizador:} Utiliza \texttt{HAL\_GetTick()} para asegurar una ejecución consistente cada 20 ms.
+
+\section{Flujo de Operación}
+
+El sistema opera de la siguiente manera:
+
+\begin{enumerate}
+    \item \textbf{Lectura de Sensores:} El ADC lee continuamente los tres canales (LDR, NTC, Potenciómetro)
+    \item \textbf{Procesamiento:} Los valores se convierten a unidades significativas (porcentaje, $^\circ$C)
+    \item \textbf{Control de Alarma:} Se comparan con el umbral ajustable mediante el potenciómetro
+    \item \textbf{Visualización:} Los LEDs muestran el nivel relativo, con parpadeo en el umbral
+    \item \textbf{Interacción:} Los botones permiten cambiar de sensor o silenciar la alarma
+\end{enumerate}
+
+\end{document}
