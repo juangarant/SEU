@@ -111,6 +111,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
+  Monitor_Init();
 
   /* USER CODE END 2 */
 
@@ -436,6 +437,7 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
+    Monitor_Loop();
     osDelay(1);
   }
   /* USER CODE END 5 */
