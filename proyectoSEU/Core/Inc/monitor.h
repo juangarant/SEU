@@ -24,4 +24,11 @@ typedef struct {
 void Monitor_Init(void);
 void Monitor_Loop(void);
 
+extern uint8_t g_mode;
+
+extern uint32_t bajadaIZQ;
+extern uint32_t bajadaDER;
+extern uint32_t subidaIZQ;
+extern uint32_t subidaDER;
+
 #endif /* INC_MONITOR_H_ */

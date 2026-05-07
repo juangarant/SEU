@@ -112,7 +112,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  //Monitor_Init();
+  Monitor_Init();
   CONFIGURACION_INICIAL();
 
   /* USER CODE END 2 */
@@ -155,13 +155,11 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-    Monitor_Loop();
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+  
   /* USER CODE END 3 */
 }
 
