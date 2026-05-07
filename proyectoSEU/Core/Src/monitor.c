@@ -3,7 +3,9 @@
  */
 
 #include "monitor.h"
+#include "stm32f4xx_hal.h"
 #include <math.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 // constantes NTC
@@ -31,6 +33,13 @@ uint32_t alarm_cooldown_start = 0;
 
 uint8_t btn_izq_last = 1;
 uint8_t btn_der_last = 1;
+
+uint32_t bajadaIZQ;
+uint32_t bajadaDER;
+uint32_t subidaIZQ;
+uint32_t subidaDER;
+uint8_t g_mode;
+
 
 //leds
 /*GPIO_TypeDef* LED_PORT[8] = {LED1_GPIO_Port, LED2_GPIO_Port, LED3_GPIO_Port, LED4_GPIO_Port, 
@@ -154,22 +163,47 @@ static void Update_Alarm(void) {
 //pulsar de botones
 
 static void Process_Buttons(void) {
+    
+
     uint8_t btn_izq = HAL_GPIO_ReadPin(BTN_IZQ_GPIO_Port, BTN_IZQ_Pin);
     uint8_t btn_der = HAL_GPIO_ReadPin(BTN_DER_GPIO_Port, BTN_DER_Pin);
 
-    // Cambiar sensor
+    //Bajada
     if (btn_izq == 0 && btn_izq_last == 1) {
-        selected_sensor = !selected_sensor;
+        bajadaIZQ = HAL_GetTick();
+    }
+
+    if (btn_der == 0 && btn_der_last == 1) {
+        bajadaDER = HAL_GetTick();
+    }
+
+    // Cambiar sensor
+    if (btn_izq == 1 && btn_izq_last == 0) {
+        uint32_t subidaIZQ =HAL_GetTick();
+        if (subidaIZQ - bajadaIZQ < 2000) {
+            selected_sensor = !selected_sensor;
+        }
     }
     
+    
+
     //Apagar alarma y entrar en cooldown
-    if (btn_der == 0 && btn_der_last == 1) {
-        if (alarm_state == ALARM_ACTIVE) {
+    if (btn_der == 1 && btn_der_last == 0) {
+        subidaDER = HAL_GetTick();
+        if (subidaDER - bajadaDER < 2000) {
+            if (alarm_state == ALARM_ACTIVE) {
             alarm_state = ALARM_COOLDOWN;
             alarm_cooldown_start = HAL_GetTick();
             HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+            }
         }
     }
+
+    if (btn_izq == 1 && btn_izq_last == 0 && btn_der == 1 && btn_der_last == 0) {
+        if (subidaIZQ - bajadaIZQ >= 2000 && subidaDER - bajadaDER >= 2000) {
+            g_mode = (g_mode + 1) % 3; // Cambia entre modos 0, 1 y 2
+        }
+    }   
 
     btn_izq_last = btn_izq;
     btn_der_last = btn_der;
@@ -183,6 +217,8 @@ void Monitor_Init(void) {
         HAL_GPIO_WritePin(LED_PORT[i], LED_PIN[i], GPIO_PIN_RESET);
     }
     HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+
+    g_mode = 0; // Modo inicial
 }
 
 void Monitor_Loop(void) {
