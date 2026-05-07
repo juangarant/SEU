@@ -12,6 +12,9 @@
 #include "main.h"
 #include "task_EJER3.h"
 
+#include <time.h>
+#include "task_TIME.h"
+
 uint32_t global_ejer3_it;
 
 void Task_EJER3_init(void){
@@ -29,12 +32,25 @@ void Task_EJER3_init(void){
 
 void Task_EJER3( void *pvParameters ){
 
-	int signal;
-
+	int contador = 0;
 	//ALUMNO Rellenar Ejercicio 3
+	bprintf("proyectoSEU at " __TIME__ "\r\n");
 
 	while (1) {
-		global_ejer3_it++;
 		//ALUMNO Rellenar Ejercicio 3
+		vTaskDelay(10000 / portTICK_RATE_MS);
+        global_ejer3_it++;
+
+        if (task_TIME_timeAvailable()) {
+            time_t t = task_TIME_getTime();
+            struct tm *tm_i = gmtime(&t);
+            bprintf("[%02d:%02d:%02d] Cnt=%d\r\n",
+                    tm_i->tm_hour,
+                    tm_i->tm_min,
+                    tm_i->tm_sec,
+                    contador++);
+        } else {
+            bprintf("Hora no disponible. Cnt=%d\r\n", contador++);
+		}
 	}
 }

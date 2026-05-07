@@ -44,7 +44,21 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+    Core/Src/main.c
+    Core/Src/freertos.c
     Core/Src/monitor.c
+    Core/Src/stm32f4xx_hal_msp.c
+    Core/Src/stm32f4xx_it.c
+    Core/Src/syscalls.c
+    Core/Src/sysmem.c
+    Core/Src/tareas.c
+    Core/Src/task_COMM.c
+    Core/Src/task_CONSOLE.c
+    Core/Src/task_EJER3.c
+    Core/Src/task_TIME.c
+    Core/Src/utility_buff.c
+    Core/Src/cJSON.c
+    Core/Src/cJSON_Utils.c
 )
 
 # Add include paths
