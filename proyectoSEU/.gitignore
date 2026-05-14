@@ -1,3 +1,16 @@
 build
 mx.scratch
 !.settings
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.bbl
+*.blg
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.run.xml
+*.bcf

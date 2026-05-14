@@ -18,7 +18,7 @@
 
 % --- Configuración de Bibliografía ---
 \usepackage[backend=biber, style=ieee]{biblatex} % Estilo APA (o usa 'numeric')
-\addbibresource{memoria.bib} % Tu archivo .bib
+\addbibresource{memoria2.bib} % Tu archivo .bib
 
 % --- 2. Configuración para Código Fuente (YAML/Bash) ---
 \usepackage{listings}
@@ -87,13 +87,17 @@
 \fancyhf{}
 \lhead{Entregable 1 -- Monitor}
 \rhead{\thepage}
-\cfoot{Julen García Muñoz}
+
 % --- 4. Información de la Portada ---
 \title{
     \vspace{2cm}
     \textbf{Entregable 1 -- Monitor}
 }
-\author{Julen García Muñoz}
+\author{Julen García Muñoz \\
+Alberto Olcina Calabuig \\
+Stiven Silva Gómez \\
+Daniel Banegas Reyes \\
+Juan García Antón}
 \date{\today}
 
 % --- 5. Inicio del Documento ---
@@ -113,7 +117,16 @@
 \section{Módulo Monitor}
 
 \subsection{Descripción General}
-El módulo \texttt{monitor.c} implementa un sistema de monitoreo de sensores para una placa STM32F411 con interfaz de LEDs, buzzer y botones. El sistema permite la lectura de dos sensores (LDR para luminosidad y NTC para temperatura), ajuste de niveles de alarma mediante potenciómetro, visualización en LEDs y activación de alarma sonora.
+El módulo \texttt{monitor.c} implementa un sistema de monitoreo de sensores para una placa STM32F411 con interfaz de LEDs, buzzer y botones. El sistema permite la lectura de dos sensores (LDR para luminosidad y NTC para temperatura), ajuste de niveles de alarma mediante potenciómetro, visualización en LEDs y activación de alarma sonora. 
+
+El módulo está integrado en un sistema con \textbf{FreeRTOS} que proporciona múltiples tareas concurrentes:
+\begin{itemize}
+    \item \textbf{Task\_CONSOLE:} Gestiona la impresión por UART mediante un buffer thread-safe con función \texttt{bprintf()}
+    \item \textbf{Task\_TIME:} Consulta un servidor de tiempo remoto para sincronizar el reloj del sistema
+    \item \textbf{Task\_COMM:} Gestiona la comunicación WiFi mediante módulo ESP32
+    \item \textbf{Task\_EJER3:} Tarea de aplicación que imprime información del sistema
+    \item \textbf{StartDefaultTask:} Ejecuta continuamente \texttt{Monitor\_Loop()} para procesamiento de sensores
+\end{itemize}
 
 \subsection{Constantes}
 
@@ -174,6 +187,11 @@ alarm_state_t alarm_state = ALARM_IDLE;     // Estado de la alarma
 uint32_t alarm_cooldown_start = 0;  // Timestamp del inicio del cooldown
 uint8_t btn_izq_last = 1;           // Estado anterior botón izquierdo
 uint8_t btn_der_last = 1;           // Estado anterior botón derecho
+uint32_t bajadaIZQ;                 // Timestamp cuando se presiona botón izq
+uint32_t bajadaDER;                 // Timestamp cuando se presiona botón der
+uint32_t subidaIZQ;                 // Timestamp cuando se suelta botón izq
+uint32_t subidaDER;                 // Timestamp cuando se suelta botón der
+uint8_t g_mode;                     // Modo del sistema: 0, 1 o 2
 \end{lstlisting}
 
 \subsubsection{LEDs}
@@ -258,15 +276,21 @@ static void Update_Alarm(void)
 static void Process_Buttons(void)
 \end{lstlisting}
 
-\textbf{Descripción:} Detecta pulsaciones de botones y ejecuta acciones correspondientes.
+\textbf{Descripción:} Detecta pulsaciones registrando timestamps en bajada/subida de botones y discrimina por duración.
+
+\textbf{Lógica:}
+\begin{itemize}
+    \item Registra \texttt{bajada*} al flanco descendente (presionar) y \texttt{subida*} al ascendente (soltar)
+    \item Si duración $< 2$ s: pulsación corta
+    \item Si duración $\geq 2$ s: pulsación larga
+\end{itemize}
 
 \textbf{Acciones:}
 \begin{itemize}
-    \item \textbf{Botón Izquierdo:} Cambia el sensor activo entre LDR (0) y NTC (1)
-    \item \textbf{Botón Derecho:} Desactiva la alarma y entra en período de cooldown si está activa
+    \item \textbf{Botón IZQ corta:} Alterna sensor (LDR $\leftrightarrow$ NTC)
+    \item \textbf{Botón DER corta:} Silencia alarma, entra en cooldown
+    \item \textbf{Ambos >=2s:} Avanza modo del sistema (\texttt{g\_mode++})
 \end{itemize}
-
-\textbf{Implementación:} Detecta flancos descendentes.
 
 \subsection{Funciones Públicas}
 
@@ -290,9 +314,11 @@ void Monitor_Init(void)
 void Monitor_Loop(void)
 \end{lstlisting}
 
-\textbf{Descripción:} Función principal que debe llamarse periódicamente desde el bucle principal.
+\textbf{Descripción:} Función principal que debe llamarse periódicamente desde la tarea \texttt{StartDefaultTask}.
 
-\textbf{Ciclo de ejecución:} Se ejecuta cada 20 ms (50 Hz)
+\textbf{Contexto de Ejecución:} Se ejecuta en una \textbf{tarea de FreeRTOS} denominada \texttt{StartDefaultTask} con prioridad NORMAL.
+
+\textbf{Ciclo de ejecución:} Se ejecuta cada 20 ms (50 Hz) mediante temporizador interno.
 
 \textbf{Secuencia de operaciones:}
 \begin{enumerate}
@@ -306,14 +332,156 @@ void Monitor_Loop(void)
 
 \section{Flujo de Operación}
 
+\section{Sistema de Tareas de FreeRTOS}
+
+El proyecto utiliza \textbf{FreeRTOS} para gestionar múltiples tareas concurrentes. La inicialización se realiza a través de la función \texttt{CONFIGURACION\_INICIAL()} llamada desde \texttt{main.c}.
+
+\subsection{Tareas del Sistema}
+
+\subsubsection{Task\_CONSOLE}
+\begin{itemize}
+    \item \textbf{Prioridad:} NORMAL\_PRIORITY
+    \item \textbf{Stack:} 2048 bytes
+    \item \textbf{Función:} Gestiona la salida de datos por UART2 mediante un buffer thread-safe
+    \item \textbf{Interfaz de Impresión:} Proporciona la función \texttt{bprintf()} para impresión formateada desde cualquier tarea
+    \item \textbf{Características:} 
+    \begin{itemize}
+        \item Buffer circular con capacidad de 128 caracteres
+        \item Función \texttt{bprintf\_last()} para mensajes prioritarios
+        \item Funciones de sincronización: \texttt{console\_lock()}, \texttt{console\_unlock()}
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Task\_TIME}
+\begin{itemize}
+    \item \textbf{Prioridad:} NORMAL\_PRIORITY
+    \item \textbf{Stack:} 2048 bytes
+    \item \textbf{Función:} Solicita y sincroniza la hora del sistema desde un servidor remoto
+    \item \textbf{Servidor:} \texttt{pperez2.disca.upv.es:5000}
+    \item \textbf{Protocolo:} HTTP GET \texttt{/tiempo}
+    \item \textbf{Procesamiento:}
+    \begin{itemize}
+        \item Parsea respuesta JSON con cJSON
+        \item Busca campo \texttt{"tiempo\_actual"} con formato: \texttt{AAAA-MM-DD HH:MM:SS}
+        \item Convierte a \texttt{time\_t} usando \texttt{mktime()}
+        \item Mantiene sincronización relativa usando \texttt{xTaskGetTickCount()}
+    \end{itemize}
+    \item \textbf{Interfaz:}
+    \begin{itemize}
+        \item \texttt{task\_TIME\_timeAvailable()}: Indica si la hora es válida
+        \item \texttt{task\_TIME\_getTime()}: Retorna la hora actual en \texttt{time\_t}
+    \end{itemize}
+    \item \textbf{Período:} Solicita actualización cada 100 segundos
+    \item \textbf{Sincronización:} Usa semáforo mutex \texttt{COMM\_xSem} para acceso exclusivo
+\end{itemize}
+
+\subsubsection{Task\_COMM}
+\begin{itemize}
+    \item \textbf{Prioridad:} NORMAL\_PRIORITY
+    \item \textbf{Stack:} 2048 bytes
+    \item \textbf{Función:} Gestiona la comunicación WiFi mediante módulo ESP32
+    \item \textbf{Configuración WiFi:}
+    \begin{itemize}
+        \item SSID: \texttt{routerSEU}
+        \item Contraseña: \texttt{00000000}
+    \end{itemize}
+    \item \textbf{Interfaz de Solicitudes:}
+    \begin{itemize}
+        \item Estructura \texttt{COMM\_request} para pasar solicitudes desde otras tareas
+        \item Campo \texttt{command}: 0=inactivo, 1=solicitud pendiente, 2=procesando
+        \item Campo \texttt{result}: 1 cuando la respuesta está lista
+    \end{itemize}
+    \item \textbf{Procesamiento:}
+    \begin{itemize}
+        \item Envía solicitud HTTP mediante \texttt{ESP\_Send\_Request()}
+        \item Limpia encabezados HTTP de la respuesta
+        \item Preserva solo el contenido JSON puro
+    \end{itemize}
+    \item \textbf{Sincronización:} Usa semáforo mutex con timeout de 20 segundos
+\end{itemize}
+
+\subsubsection{Task\_EJER3}
+\begin{itemize}
+    \item \textbf{Prioridad:} NORMAL\_PRIORITY
+    \item \textbf{Stack:} 2048 bytes
+    \item \textbf{Función:} Tarea de aplicación que imprime información del sistema
+    \item \textbf{Período:} 10 segundos
+    \item \textbf{Salida:}
+    \begin{itemize}
+        \item Si hora disponible: \texttt{[HH:MM:SS] Cnt=X}
+        \item Si hora no disponible: \texttt{Hora no disponible. Cnt=X}
+        \item Estado del modo: \texttt{g\_mode: X}
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{StartDefaultTask}
+\begin{itemize}
+    \item \textbf{Prioridad:} NORMAL\_PRIORITY
+    \item \textbf{Stack:} 512 bytes
+    \item \textbf{Función:} Ejecuta continuamente \texttt{Monitor\_Loop()}
+    \item \textbf{Período:} Ajustable mediante \texttt{osDelay(1)} (típicamente 1-2 ms entre ciclos)
+\end{itemize}
+
+\subsection{Sincronización Entre Tareas}
+
+El sistema utiliza varios mecanismos de sincronización:
+
+\begin{itemize}
+    \item \textbf{Mutex COMM\_xSem:} Protege acceso a la estructura \texttt{COMM\_request}
+    \item \textbf{Variables Globales:}
+    \begin{itemize}
+        \item \texttt{g\_mode}: Modo del sistema, modificable por pulsación de botones
+        \item \texttt{time\_available}: Indica disponibilidad de hora
+        \item \texttt{global\_wifi\_ready}: Estado de conexión WiFi
+    \end{itemize}
+    \item \textbf{Buffer Thread-Safe IObuff:} Maneja impresión desde múltiples tareas sin conflictos
+\end{itemize}
+
+\section{Flujo de Operación}
+
 El sistema opera de la siguiente manera:
 
 \begin{enumerate}
-    \item \textbf{Lectura de Sensores:} El ADC lee continuamente los tres canales (LDR, NTC, Potenciómetro)
-    \item \textbf{Procesamiento:} Los valores se convierten a unidades significativas (porcentaje, $^\circ$C)
-    \item \textbf{Control de Alarma:} Se comparan con el umbral ajustable mediante el potenciómetro
-    \item \textbf{Visualización:} Los LEDs muestran el nivel relativo, con parpadeo en el umbral
-    \item \textbf{Interacción:} Los botones permiten cambiar de sensor o silenciar la alarma
+    \item \textbf{Inicialización:} 
+    \begin{itemize}
+        \item Se llama a \texttt{Monitor\_Init()} para apagar todos los LEDs y buzzer
+        \item Se llama a \texttt{CONFIGURACION\_INICIAL()} para crear todas las tareas de FreeRTOS
+        \item Se inicia el planificador de FreeRTOS
+    \end{itemize}
+    
+    \item \textbf{Lectura de Sensores (StartDefaultTask):} El módulo monitor lee continuamente los tres canales ADC en cada ciclo de 20 ms (LDR, NTC, Potenciómetro)
+    
+    \item \textbf{Procesamiento de Sensores:} Los valores se convierten a unidades significativas (porcentaje, °C) y se normaliza el rango de alarma mediante el potenciómetro
+    
+    \item \textbf{Control de Alarma:} Se comparan los valores con los umbrales ajustables:
+    \begin{itemize}
+        \item Si sensor supera umbral: Alarma activa, buzzer suena
+        \item Si se pulsa botón derecho: Alarma silenciada, entra en cooldown de 10 segundos
+        \item Después de cooldown: Sistema vuelve a estado IDLE
+    \end{itemize}
+    
+    \item \textbf{Visualización (LEDs):} Los 8 LEDs muestran el nivel relativo del sensor activo, con parpadeo (10 Hz) en el LED que marca el umbral de alarma
+    
+    \item \textbf{Interacción de Botones:}
+    \begin{itemize}
+        \item Botón izquierdo (corta pulsación): Cambia entre sensor LDR y NTC
+        \item Botón derecho (corta pulsación): Silencia alarma si está activa
+        \item Ambos botones (larga pulsación >= 2s): Cambia modo del sistema (g\_mode)
+    \end{itemize}
+    
+    \item \textbf{Sincronización de Hora (Task\_TIME):}
+    \begin{itemize}
+        \item Cada 100 segundos solicita hora al servidor
+        \item Parsea respuesta JSON
+        \item Actualiza variable global \texttt{time\_available}
+    \end{itemize}
+    
+    \item \textbf{Impresión de Información (Task\_EJER3):}
+    \begin{itemize}
+        \item Cada 10 segundos imprime estado usando \texttt{bprintf()}
+        \item Muestra hora sincronizada si disponible
+        \item Imprime modo actual del sistema
+    \end{itemize}
 \end{enumerate}
 
 \end{document}
