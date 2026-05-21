@@ -16,6 +16,8 @@
 #include "task_TIME.h"
 #include "task_COMM.h"
 #include "task_EJER3.h"
+#include "task_ORION.h"
+#include "task_CLONE.h"
 
 void CONFIGURACION_INICIAL(void){
 
@@ -35,6 +37,8 @@ void CONFIGURACION_INICIAL(void){
  	Task_EJER3_init();
    	Task_TIME_init();
  	Task_COMM_init();
+	Task_ORION_init();
+	Task_CLONE_init();
 
 }
 

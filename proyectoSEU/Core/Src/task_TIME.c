@@ -65,7 +65,7 @@ void Task_TIME( void *pvParameters ){
 				// now structure access is secure, nobody can rewrite it if flag command is 1
 				// EJERCICIO 5
 				COMM_request.dst_port    = 5000;
-				COMM_request.dst_address = (uint8_t *)"pperez2.disca.upv.es";
+				COMM_request.dst_address = (uint8_t *)"158.42.180.130";
 				COMM_request.HTTP_request = (uint8_t *)"GET /tiempo HTTP/1.1\r\n\r\n";
 								
 

@@ -32,6 +32,9 @@
 // Orion Context IoT name
 #define IoT_NAME   	 	  "SensorSEU_PPB00"
 #define IoT_NAME_CLONE    "SensorSEU_ZL"
+#define SERVER_IP  "158.42.180.130"
+#define ORION_PORT  1026
+#define TIME_PORT   5000
 
 // seminario 6
 

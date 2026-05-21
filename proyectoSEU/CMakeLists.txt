@@ -59,6 +59,8 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/utility_buff.c
     Core/Src/cJSON.c
     Core/Src/cJSON_Utils.c
+    Core/Src/task_ORION.c
+    Core/Src/task_CLONE.c
 )
 
 # Add include paths

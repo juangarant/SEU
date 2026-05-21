@@ -21,13 +21,12 @@
 extern ADC_HandleTypeDef hadc1;
 
 // variables 
-sensor_t sensor_ldr = {0.0f, 0.0f, 100.0f, 50.0f, 0, 0, 0, 0};
+sensor_t sensor_ldr = {0.0f, 0.0f, 100.0f, 75.0f, 0, 0, 0, 0};
 sensor_t sensor_ntc = {0.0f, 25.0f, 30.0f, 27.5f, 0, 0, 0, 0};
 
 uint8_t selected_sensor = 0;      // 0 = LDR, 1 = NTC
 uint32_t last_pot_value = 0xFFFF; // Para detectar cambios en el potenciómetro
 
-typedef enum { ALARM_IDLE, ALARM_ACTIVE, ALARM_COOLDOWN } alarm_state_t;
 alarm_state_t alarm_state = ALARM_IDLE;
 uint32_t alarm_cooldown_start = 0;
 
@@ -39,6 +38,7 @@ uint32_t bajadaDER;
 uint32_t subidaIZQ;
 uint32_t subidaDER;
 uint8_t g_mode;
+char alarma_src[13] = "SensorSEU_05";
 
 
 //leds
@@ -199,6 +199,7 @@ static void Process_Buttons(void) {
         }
     }
 
+    //AUMENTAR _GMODE (ejercicio 3) si se pulsa ambos botones durante más de 2 segundos
     if (btn_izq == 1 && btn_izq_last == 0 && btn_der == 1 && btn_der_last == 0) {
         if (subidaIZQ - bajadaIZQ >= 2000 && subidaDER - bajadaDER >= 2000) {
             g_mode = (g_mode + 1) % 3; // Cambia entre modos 0, 1 y 2

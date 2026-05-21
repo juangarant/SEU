@@ -25,10 +25,15 @@ void Monitor_Init(void);
 void Monitor_Loop(void);
 
 extern uint8_t g_mode;
-
+typedef enum { ALARM_IDLE, ALARM_ACTIVE, ALARM_COOLDOWN } alarm_state_t;
 extern uint32_t bajadaIZQ;
 extern uint32_t bajadaDER;
 extern uint32_t subidaIZQ;
 extern uint32_t subidaDER;
+extern sensor_t sensor_ldr;
+extern sensor_t sensor_ntc;
+extern alarm_state_t alarm_state;
+extern char alarma_src[13];
+
 
 #endif /* INC_MONITOR_H_ */
