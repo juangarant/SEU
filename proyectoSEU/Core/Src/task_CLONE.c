@@ -101,15 +101,19 @@ void Task_CLONE(void *pvParameters) {
 
             if (temp) {
                 cJSON *val = cJSON_GetObjectItem(temp, "value");
-                if (val && val->valuestring)
+                if (val && val->valuestring) {
+                    float dmax = 0.0f, dmin = 0.0f;
                     sscanf(val->valuestring, "%f,%f,%f,%f",
-                        &clone_temperatura, NULL, NULL, &clone_alarma_ntc);
+                        &clone_temperatura, &dmax, &dmin, &clone_alarma_ntc);
+                }
             }
             if (lux) {
                 cJSON *val = cJSON_GetObjectItem(lux, "value");
-                if (val && val->valuestring)
+                if (val && val->valuestring) {
+                    float dmax = 0.0f, dmin = 0.0f;
                     sscanf(val->valuestring, "%f,%f,%f,%f",
-                        &clone_ldr, NULL, NULL, &clone_alarma_ldr);
+                        &clone_ldr, &dmax, &dmin, &clone_alarma_ldr);
+                }
             }
             if (alarm) {
                 cJSON *val = cJSON_GetObjectItem(alarm, "value");
