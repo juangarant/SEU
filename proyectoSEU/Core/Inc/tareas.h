@@ -30,7 +30,7 @@
 #define FREERTOS_5SEG		(5000/portTICK_PERIOD_MS)
 
 // Orion Context IoT name
-#define IoT_NAME   	 	  "SensorSEU_PPB00"
+#define IoT_NAME   	 	  "SensorSEU_70"
 #define IoT_NAME_CLONE    "SensorSEU_ZL"
 #define SERVER_IP  "158.42.180.130"
 #define ORION_PORT  1026
