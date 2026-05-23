@@ -109,15 +109,14 @@ void cleanResponse(uint8_t * data,int maxlen)
 	 while ((j=(uint8_t *)strstr((char *)data,"+IPD"))){
 
 		 from=(uint8_t *)strstr((char *)j,":");
+		 if (from==NULL) break;
 		 from++;
 
 		 	 for (pc=from;pc<(data+2048);pc++)
 			 	*(j++)=*(from++);
 	 };
-	 	 do
-			                  {
-			                  }while(data[i++]!='{');
-			                  i--;
+	 	 while (i<2048 && data[i]!='{') i++;
+	if (i>=2048) { data[0]=0; return; }
 	for (t=0;t<(2048-i);t++)
 		data[t]=data[t+i];
 
@@ -126,7 +125,7 @@ void cleanResponse(uint8_t * data,int maxlen)
     for (t=0;t<2048;t++)
     	if (data[t]=='}')
     		i=t;
-    data[i+1]=0;
+    if (i+1<2048) data[i+1]=0; else data[2047]=0;
 
 }
 //////////////////////////////////////////////////////////////////7777
@@ -311,12 +310,13 @@ uint8_t * ESP_Send_Request(uint8_t * dst_address, uint32_t dst_port, uint8_t * r
     						HAL_UART_Receive_DMA(&huart1, buff_recv,2048);
     						HAL_UART_Transmit(&huart1,( const uint8_t *)aux_buff_WIFI,strlen((const char *)aux_buff_WIFI),10000);
     						vTaskDelay(10/portTICK_RATE_MS );
-    						if (ESP_TimeOut(2000,buff_recv,">", "SEND",buff_recv))
-    							st=4; // cerrar la conexion
-
-    						//vTaskDelay(2000/portTICK_RATE_MS );
+    						if (ESP_TimeOut(2000,buff_recv,">", "SEND",buff_recv)) {
+    							HAL_UART_DMAStop(&huart1);
+    							for (ct=0;ct<2048;ct++) buff_WIFI_response[ct]=0;
+    							st=4; // sin '>' del ESP: cerrar sin enviar
+    							break;
+    						}
     						HAL_UART_DMAStop(&huart1);
-    						//bprintf("7: %s",buff_recv);
     						st=3;
     						break;
     				case 3: // ahora HTTP
