@@ -26,10 +26,16 @@ int time_available = 0;
 time_t tm_offset;
 time_t ticks_since_start_ts;
 
+/* ---- Fase 2: proteger los datos de tiempo compartidos con Task_EJER3 ---- */
+static SemaphoreHandle_t time_xMutex = NULL;
+static void Time_Lock(void)   { if (time_xMutex) xSemaphoreTake(time_xMutex, portMAX_DELAY); }
+static void Time_Unlock(void) { if (time_xMutex) xSemaphoreGive(time_xMutex); }
+
 
 void Task_TIME_init(void){
 
 	BaseType_t res_task;
+	time_xMutex = xSemaphoreCreateMutex();
 	global_time_it=0;
 	global_wifi_ready=0;
 	res_task=xTaskCreate( Task_TIME,"TIME",2048,NULL,	NORMAL_PRIORITY,NULL);
@@ -97,13 +103,13 @@ void Task_TIME( void *pvParameters ){
 			    tm_date.tm_sec = second;
 			    tm_date.tm_isdst = -1;         // Dejar que la biblioteca determine el DST
 
-			    // Obtener la fecha de inicio en time_t
+			    // Obtener la fecha de inicio (protegido por mutex)
+			    Time_Lock();
 			    tm_offset = mktime(&tm_date);
-			    // Convertir ticks a segundos
 			    ticks_since_start_ts = xTaskGetTickCount();
-
+			    time_available = 1;
+			    Time_Unlock();
 			    cJSON_Delete(jsons1);
-				time_available=1;
 	}
 	else
 		bprintf("TIME: Response error \r\n");
@@ -120,11 +126,20 @@ void Task_TIME( void *pvParameters ){
 }
 
 int task_TIME_timeAvailable(void){
-	return time_available;
+	int av;
+	Time_Lock();
+	av = time_available;
+	Time_Unlock();
+	return av;
 }
 
 time_t task_TIME_getTime(void){
 
-	return tm_offset + (xTaskGetTickCount() - ticks_since_start_ts)/portTICK_RATE_MS/1000;
+	time_t off, ticks;
+	Time_Lock();
+	off = tm_offset;
+	ticks = ticks_since_start_ts;
+	Time_Unlock();
+	return off + (xTaskGetTickCount() - ticks)/portTICK_RATE_MS/1000;
 }
 
