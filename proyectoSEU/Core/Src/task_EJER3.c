@@ -55,6 +55,6 @@ void Task_EJER3( void *pvParameters ){
             bprintf("Hora no disponible. Cnt=%d\r\n", contador++);
 		}
 
-		bprintf("g_mode: %d\r\n", g_mode);
+		bprintf("g_mode: %d\r\n", Monitor_GetMode());
 	}
 }

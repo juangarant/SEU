@@ -51,7 +51,7 @@ void Task_CLONE(void *pvParameters) {
     while (1) {
 
         // Solo activo en modo clon
-        if (g_mode != 1) {
+        if (Monitor_GetMode() != 1) {
             vTaskDelay(2000 / portTICK_RATE_MS);
             continue;
         }
@@ -99,6 +99,7 @@ void Task_CLONE(void *pvParameters) {
             cJSON *lux  = cJSON_GetObjectItem(json, "IntensidadLuz");
             cJSON *alarm = cJSON_GetObjectItem(json, "Alarma");
 
+            Monitor_LockModel(); /* Fase 2: proteger variables clone_* */
             if (temp) {
                 cJSON *val = cJSON_GetObjectItem(temp, "value");
                 if (val && val->valuestring) {
@@ -120,6 +121,7 @@ void Task_CLONE(void *pvParameters) {
                 if (val && val->valuestring)
                     clone_alarma_activa = (val->valuestring[0] == 'T') ? 1 : 0;
             }
+            Monitor_UnlockModel();
             cJSON_Delete(json);
         }
 

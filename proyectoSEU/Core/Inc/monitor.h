@@ -36,4 +36,19 @@ extern alarm_state_t alarm_state;
 extern char alarma_src[13];
 
 
+/* ---- Fase 2: sincronizacion del modelo compartido ---- */
+typedef struct {
+    sensor_t      ntc;
+    sensor_t      ldr;
+    uint8_t       mode;
+    alarm_state_t alarm;
+    char          alarma_src[13];
+} monitor_snapshot_t;
+
+void    Monitor_GetSnapshot(monitor_snapshot_t *snap);
+uint8_t Monitor_GetMode(void);
+void    Monitor_LockModel(void);
+void    Monitor_UnlockModel(void);
+
+
 #endif /* INC_MONITOR_H_ */

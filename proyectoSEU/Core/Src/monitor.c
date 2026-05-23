@@ -7,6 +7,10 @@
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "FreeRTOS.h"
+#include "semphr.h"
+#include "task.h"
+#include <string.h>
 
 // constantes NTC
 #define R25    10000.0f
@@ -39,6 +43,7 @@ uint32_t subidaIZQ;
 uint32_t subidaDER;
 uint8_t g_mode;
 char alarma_src[13] = "SensorSEU_05";
+SemaphoreHandle_t monitor_xMutex = NULL;
 
 
 //leds
@@ -220,6 +225,9 @@ void Monitor_Init(void) {
     HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
 
     g_mode = 0; // Modo inicial
+
+    // Fase 2: mutex que protege el modelo compartido
+    monitor_xMutex = xSemaphoreCreateMutex();
 }
 
 void Monitor_Loop(void) {
@@ -230,9 +238,45 @@ void Monitor_Loop(void) {
     if (current - last_cycle >= 20) {
         last_cycle = current;
 
+        if (monitor_xMutex != NULL)
+            xSemaphoreTake(monitor_xMutex, portMAX_DELAY);
+
         Process_Buttons();
         Update_Sensors();
         Update_Alarm();
         Update_Display();
+
+        if (monitor_xMutex != NULL)
+            xSemaphoreGive(monitor_xMutex);
     }
+}
+
+/* ---- Fase 2: acceso protegido al modelo compartido ---- */
+void Monitor_LockModel(void) {
+    if (monitor_xMutex != NULL)
+        xSemaphoreTake(monitor_xMutex, portMAX_DELAY);
+}
+
+void Monitor_UnlockModel(void) {
+    if (monitor_xMutex != NULL)
+        xSemaphoreGive(monitor_xMutex);
+}
+
+void Monitor_GetSnapshot(monitor_snapshot_t *snap) {
+    if (snap == NULL) return;
+    Monitor_LockModel();
+    snap->ntc   = sensor_ntc;
+    snap->ldr   = sensor_ldr;
+    snap->mode  = g_mode;
+    snap->alarm = alarm_state;
+    memcpy(snap->alarma_src, alarma_src, sizeof(snap->alarma_src));
+    Monitor_UnlockModel();
+}
+
+uint8_t Monitor_GetMode(void) {
+    uint8_t m;
+    Monitor_LockModel();
+    m = g_mode;
+    Monitor_UnlockModel();
+    return m;
 }

@@ -32,11 +32,15 @@ void Task_ORION_init(void) {
 void Task_ORION(void *pvParameters) {
 
     int signal;
+    monitor_snapshot_t snap;
 
     while (1) {
 
+        // Fase 2: copia consistente del modelo bajo mutex
+        Monitor_GetSnapshot(&snap);
+
         // Solo publicar en modo conectado
-        if (g_mode != 0) {
+        if (snap.mode != 0) {
             vTaskDelay(2000 / portTICK_RATE_MS);
             continue;
         }
@@ -63,12 +67,12 @@ void Task_ORION(void *pvParameters) {
                 "\"type\":\"string\"}"
             "}",
             IoT_NAME,
-            sensor_ntc.valor, sensor_ntc.maximo,
-            sensor_ntc.minimo, sensor_ntc.nivel_alarma,
-            sensor_ldr.valor, sensor_ldr.maximo,
-            sensor_ldr.minimo, sensor_ldr.nivel_alarma,
-            (alarm_state == ALARM_ACTIVE) ? 'T' : 'F',
-            alarma_src,
+            snap.ntc.valor, snap.ntc.maximo,
+            snap.ntc.minimo, snap.ntc.nivel_alarma,
+            snap.ldr.valor, snap.ldr.maximo,
+            snap.ldr.minimo, snap.ldr.nivel_alarma,
+            (snap.alarm == ALARM_ACTIVE) ? 'T' : 'F',
+            snap.alarma_src,
             IoT_NAME
         );
 
