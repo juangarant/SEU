@@ -17,6 +17,7 @@ extern UART_HandleTypeDef huart1;
 extern BUFF_BUFFER_t * IObuff;
 
 void Task_CONSOLE( void *pvParameters );
+void Console_Init(void);
 void bprintf ( const char *fmt, ...);
 
 

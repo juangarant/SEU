@@ -14,11 +14,17 @@
 #include <stm32f4xx_hal_dma.h>
 
 #include "task_CONSOLE.h"
+#include "semphr.h"
 
 #include <stdarg.h>
 
 char bprint_buff[2048];
 BUFF_BUFFER_t * IObuff;
+SemaphoreHandle_t console_xMutex = NULL;
+
+void Console_Init(void) {
+	console_xMutex = xSemaphoreCreateMutex();
+}
 
 void Task_CONSOLE( void *pvParameters ){
 
@@ -72,20 +78,21 @@ void console_unlock(void){
 void bprintf_last ( const char *fmt, ...){
 	  va_list ap;
 
+	  if (console_xMutex) xSemaphoreTake(console_xMutex, portMAX_DELAY);
 	  va_start(ap, fmt);
 	  vsprintf(bprint_buff,fmt,ap);
 	  va_end(ap);
  	  IObuff->puts_priority(IObuff,(BUFF_ITEM_t *)bprint_buff,strlen(bprint_buff));
-
+	  if (console_xMutex) xSemaphoreGive(console_xMutex);
 }
 
 void bprintf ( const char *fmt, ...){
 	  va_list ap;
 
-
+	  if (console_xMutex) xSemaphoreTake(console_xMutex, portMAX_DELAY);
 	  va_start(ap, fmt);
 	  vsprintf(bprint_buff,fmt,ap);
 	  va_end(ap);
  	  IObuff->puts(IObuff,(BUFF_ITEM_t *)bprint_buff,strlen(bprint_buff));
-
+	  if (console_xMutex) xSemaphoreGive(console_xMutex);
 }
