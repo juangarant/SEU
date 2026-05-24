@@ -34,9 +34,6 @@ typedef struct REQUEST_DUMMY {
 extern scomm_request_t COMM_request;
 extern SemaphoreHandle_t COMM_xSem;
 
-extern uint8_t buff_json[2048];
-extern uint8_t buff_request[2048];
-
 #include "main.h"
 #include <stdint.h>
 #include "FreeRTOS.h"
