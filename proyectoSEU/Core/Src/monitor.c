@@ -47,6 +47,7 @@ uint32_t subidaDER;
 uint8_t g_mode;
 char alarma_src[13] = "SensorSEU_05";
 SemaphoreHandle_t monitor_xMutex = NULL;
+static uint32_t mode_show_until = 0;   /* Fase 4: tick hasta el que se muestra el modo */
 
 
 //leds
@@ -171,48 +172,53 @@ static void Update_Alarm(void) {
 //pulsar de botones
 
 static void Process_Buttons(void) {
-    
+    static int      combo_pressed = 0;   /* ambos botones pulsados a la vez */
+    static int      combo_fired   = 0;   /* el cambio de modo ya se hizo en este gesto */
+    static uint32_t combo_start   = 0;
+    uint32_t now = HAL_GetTick();
 
     uint8_t btn_izq = HAL_GPIO_ReadPin(BTN_IZQ_GPIO_Port, BTN_IZQ_Pin);
     uint8_t btn_der = HAL_GPIO_ReadPin(BTN_DER_GPIO_Port, BTN_DER_Pin);
+    /* botones activos a nivel bajo: 0 = pulsado, 1 = soltado */
 
-    //Bajada
-    if (btn_izq == 0 && btn_izq_last == 1) {
-        bajadaIZQ = HAL_GetTick();
-    }
-
-    if (btn_der == 0 && btn_der_last == 1) {
-        bajadaDER = HAL_GetTick();
-    }
-
-    // Cambiar sensor
-    if (btn_izq == 1 && btn_izq_last == 0) {
-        uint32_t subidaIZQ =HAL_GetTick();
-        if (subidaIZQ - bajadaIZQ < 2000) {
-            selected_sensor = !selected_sensor;
+    /* Combo: ambos botones pulsados mas de 1 s -> cambia de modo */
+    if (btn_izq == 0 && btn_der == 0) {
+        if (!combo_pressed) {
+            combo_pressed = 1;
+            combo_fired   = 0;
+            combo_start   = now;
+        } else if (!combo_fired && (now - combo_start >= 1000)) {
+            g_mode      = (g_mode + 1) % 3;   /* 0=conectado 1=clon 2=test */
+            combo_fired = 1;
         }
     }
-    
-    
 
-    //Apagar alarma y entrar en cooldown
+    /* Boton 1 (izquierdo): al soltar, cambia el sensor seleccionado */
+    if (btn_izq == 1 && btn_izq_last == 0) {
+        if (!combo_pressed)
+            selected_sensor = !selected_sensor;
+    }
+
+    /* Boton 2 (derecho): al soltar */
     if (btn_der == 1 && btn_der_last == 0) {
-        subidaDER = HAL_GetTick();
-        if (subidaDER - bajadaDER < 2000) {
+        if (!combo_pressed) {
             if (alarm_state == ALARM_ACTIVE) {
-            alarm_state = ALARM_COOLDOWN;
-            alarm_cooldown_start = HAL_GetTick();
-            HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+                /* la alarma suena -> apagarla (igual que en el entregable 1) */
+                alarm_state = ALARM_COOLDOWN;
+                alarm_cooldown_start = now;
+                HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+            } else {
+                /* la alarma no suena -> mostrar el modo en los LEDs */
+                mode_show_until = now + 2000;
             }
         }
     }
 
-    //AUMENTAR _GMODE (ejercicio 3) si se pulsa ambos botones durante más de 2 segundos
-    if (btn_izq == 1 && btn_izq_last == 0 && btn_der == 1 && btn_der_last == 0) {
-        if (subidaIZQ - bajadaIZQ >= 2000 && subidaDER - bajadaDER >= 2000) {
-            g_mode = (g_mode + 1) % 3; // Cambia entre modos 0, 1 y 2
-        }
-    }   
+    /* el gesto de combo se cierra al soltar AMBOS botones */
+    if (btn_izq == 1 && btn_der == 1) {
+        combo_pressed = 0;
+        combo_fired   = 0;
+    }
 
     btn_izq_last = btn_izq;
     btn_der_last = btn_der;
@@ -361,6 +367,15 @@ static void Update_Test(void) {
     }
 }
 
+/* ---- Fase 4: muestra el modo actual en los LEDs (boton 2) ---- */
+static void Show_Mode_Leds(void) {
+    int i;
+    uint8_t n = (uint8_t)(g_mode + 1);   /* conectado=1, clon=2, test=3 */
+    for (i = 0; i < 8; i++)
+        HAL_GPIO_WritePin(LED_PORT[i], LED_PIN[i],
+                          (i < n) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+}
+
 void Monitor_Init(void) {
     // Asegurar que todo inicie apagado
     for (int i = 0; i < 8; i++) {
@@ -395,13 +410,19 @@ void Monitor_Loop(void) {
                 Monitor_LockModel();
                 Update_Sensors();
                 Update_Alarm();
-                Update_Display();
+                if (HAL_GetTick() < mode_show_until)
+                    Show_Mode_Leds();
+                else
+                    Update_Display();
                 Monitor_UnlockModel();
                 break;
 
             case MODE_CLON:
                 Monitor_LockModel();
-                Update_Display_Clone();
+                if (HAL_GetTick() < mode_show_until)
+                    Show_Mode_Leds();
+                else
+                    Update_Display_Clone();
                 Monitor_UnlockModel();
                 break;
 
