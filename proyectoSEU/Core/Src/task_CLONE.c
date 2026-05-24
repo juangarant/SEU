@@ -51,7 +51,7 @@ void Task_CLONE(void *pvParameters) {
     while (1) {
 
         // Solo activo en modo clon
-        if (Monitor_GetMode() != 1) {
+        if (Monitor_GetMode() != MODE_CLON) {
             vTaskDelay(2000 / portTICK_RATE_MS);
             continue;
         }

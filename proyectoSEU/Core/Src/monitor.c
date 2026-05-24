@@ -11,6 +11,9 @@
 #include "semphr.h"
 #include "task.h"
 #include <string.h>
+#include "task_CONSOLE.h"
+#include "task_CLONE.h"
+#include "task_COMM.h"
 
 // constantes NTC
 #define R25    10000.0f
@@ -217,6 +220,147 @@ static void Process_Buttons(void) {
 
 //Funciones públicas
 
+/* ---- Fase 3: display del nodo clonado (modo clon) ---- */
+static void Update_Display_Clone(void) {
+    static uint32_t flash_t = 0;
+    static int      flash_on = 0;
+    float value, trip, mn, mx, range, rel, frel;
+    uint8_t num_leds, flash_idx;
+    int i;
+    uint32_t now = HAL_GetTick();
+
+    if (selected_sensor == 0) {        /* LDR del nodo clonado */
+        value = clone_ldr;
+        trip  = clone_alarma_ldr;
+        mn = sensor_ldr.minimo;
+        mx = sensor_ldr.maximo;
+    } else {                           /* NTC del nodo clonado */
+        value = clone_temperatura;
+        trip  = clone_alarma_ntc;
+        mn = sensor_ntc.minimo;
+        mx = sensor_ntc.maximo;
+    }
+
+    range = mx - mn;
+    if (range <= 0.0f) range = 1.0f;
+
+    rel = value - mn;
+    if (rel < 0.0f) rel = 0.0f;
+    num_leds = (uint8_t)((rel / range) * 8.0f);
+    if (num_leds > 8) num_leds = 8;
+
+    frel = (trip - mn) / range;
+    if (frel < 0.0f) frel = 0.0f;
+    if (frel > 1.0f) frel = 1.0f;
+    flash_idx = (uint8_t)(frel * 7.99f);
+
+    if (now - flash_t > 50) {
+        flash_t = now;
+        flash_on = !flash_on;
+    }
+
+    for (i = 0; i < 8; i++) {
+        GPIO_PinState st = GPIO_PIN_RESET;
+        if (i == (int)flash_idx)
+            st = flash_on ? GPIO_PIN_SET : GPIO_PIN_RESET;
+        else if (i < (int)num_leds)
+            st = GPIO_PIN_SET;
+        HAL_GPIO_WritePin(LED_PORT[i], LED_PIN[i], st);
+    }
+}
+
+/* ---- Fase 3: secuencia de test (modo test) ---- */
+static void Update_Test(void) {
+    static int      phase   = 0;
+    static int      sweep_i = 0;
+    static uint32_t t0      = 0;
+    uint32_t now = HAL_GetTick();
+    int i;
+
+    switch (phase) {
+        case 0:  /* inicio de la secuencia */
+            bprintf("\r\n===== MODO TEST =====\r\n");
+            for (i = 0; i < 8; i++)
+                HAL_GPIO_WritePin(LED_PORT[i], LED_PIN[i], GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+            sweep_i = 0;
+            t0 = now;
+            phase = 1;
+            break;
+
+        case 1:  /* 1) barrido de LEDs */
+            if (now - t0 >= 120) {
+                t0 = now;
+                for (i = 0; i < 8; i++)
+                    HAL_GPIO_WritePin(LED_PORT[i], LED_PIN[i],
+                                      (i == sweep_i) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+                sweep_i++;
+                if (sweep_i >= 8) {
+                    for (i = 0; i < 8; i++)
+                        HAL_GPIO_WritePin(LED_PORT[i], LED_PIN[i], GPIO_PIN_RESET);
+                    bprintf("TEST 1: barrido de LEDs OK\r\n");
+                    t0 = now;
+                    phase = 2;
+                }
+            }
+            break;
+
+        case 2:  /* 2) buzzer */
+            HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_SET);
+            if (now - t0 >= 500) {
+                HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+                bprintf("TEST 2: buzzer OK\r\n");
+                phase = 3;
+            }
+            break;
+
+        case 3:  /* 3) canales analogicos: temp, ldr %, pot V */
+        {
+            uint32_t adc_ldr = ADC_ReadChannel(CH_LDR);
+            uint32_t adc_ntc = ADC_ReadChannel(CH_NTC);
+            uint32_t adc_pot = ADC_ReadChannel(CH_POT);
+            int ldr_pct = (int)(100.0f - (adc_ldr / 4095.0f) * 100.0f);
+            int pot_mv  = (int)((adc_pot / 4095.0f) * 3300.0f);
+            int temp_c  = 0;
+            if (adc_ntc < 4095) {
+                float tc = BETA / (logf((-10000.0f * 3.3f /
+                           (adc_ntc * 3.3f / 4095.9f - 3.3f) - 10000.0f) / R25)
+                           + BETA / T25) - 273.18f;
+                temp_c = (int)tc;
+            }
+            bprintf("TEST 3: Temp=%d C  LDR=%d %%  POT=%d mV\r\n",
+                    temp_c, ldr_pct, pot_mv);
+            phase = 4;
+            break;
+        }
+
+        case 4:  /* 4) estado de los botones */
+        {
+            int bi = HAL_GPIO_ReadPin(BTN_IZQ_GPIO_Port, BTN_IZQ_Pin);
+            int bd = HAL_GPIO_ReadPin(BTN_DER_GPIO_Port, BTN_DER_Pin);
+            bprintf("TEST 4: BTN_IZQ=%d  BTN_DER=%d (0=pulsado)\r\n", bi, bd);
+            phase = 5;
+            break;
+        }
+
+        case 5:  /* 5) orden AT y su respuesta */
+            if (Test_SendAT() == 0)
+                bprintf("TEST 5: recurso COMM ocupado\r\n");
+            t0 = now;
+            phase = 6;
+            break;
+
+        case 6:  /* pausa y repeticion de la secuencia */
+            if (now - t0 >= 3000)
+                phase = 0;
+            break;
+
+        default:
+            phase = 0;
+            break;
+    }
+}
+
 void Monitor_Init(void) {
     // Asegurar que todo inicie apagado
     for (int i = 0; i < 8; i++) {
@@ -233,21 +377,38 @@ void Monitor_Init(void) {
 void Monitor_Loop(void) {
     static uint32_t last_cycle = 0;
     uint32_t current = HAL_GetTick();
+    uint8_t  mode;
 
-    // Ejecutar cada 20 ms
+    /* Ejecutar cada 20 ms */
     if (current - last_cycle >= 20) {
         last_cycle = current;
 
-        if (monitor_xMutex != NULL)
-            xSemaphoreTake(monitor_xMutex, portMAX_DELAY);
-
+        /* Botones y lectura del modo: siempre, protegido por mutex */
+        Monitor_LockModel();
         Process_Buttons();
-        Update_Sensors();
-        Update_Alarm();
-        Update_Display();
+        mode = g_mode;
+        Monitor_UnlockModel();
 
-        if (monitor_xMutex != NULL)
-            xSemaphoreGive(monitor_xMutex);
+        /* Maquina de estados de los 3 modos de funcionamiento */
+        switch (mode) {
+            case MODE_CONECTADO:
+                Monitor_LockModel();
+                Update_Sensors();
+                Update_Alarm();
+                Update_Display();
+                Monitor_UnlockModel();
+                break;
+
+            case MODE_CLON:
+                Monitor_LockModel();
+                Update_Display_Clone();
+                Monitor_UnlockModel();
+                break;
+
+            case MODE_TEST:
+                Update_Test();
+                break;
+        }
     }
 }
 

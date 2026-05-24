@@ -24,6 +24,11 @@ typedef struct {
 void Monitor_Init(void);
 void Monitor_Loop(void);
 
+/* ---- Fase 3: modos de funcionamiento (valores de g_mode) ---- */
+#define MODE_CONECTADO  0
+#define MODE_CLON       1
+#define MODE_TEST       2
+
 extern uint8_t g_mode;
 typedef enum { ALARM_IDLE, ALARM_ACTIVE, ALARM_COOLDOWN } alarm_state_t;
 extern uint32_t bajadaIZQ;

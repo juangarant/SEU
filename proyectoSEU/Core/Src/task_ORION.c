@@ -40,7 +40,7 @@ void Task_ORION(void *pvParameters) {
         Monitor_GetSnapshot(&snap);
 
         // Solo publicar en modo conectado
-        if (snap.mode != 0) {
+        if (snap.mode != MODE_CONECTADO) {
             vTaskDelay(2000 / portTICK_RATE_MS);
             continue;
         }
