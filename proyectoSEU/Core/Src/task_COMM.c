@@ -352,4 +352,32 @@ uint8_t * ESP_Send_Request(uint8_t * dst_address, uint32_t dst_port, uint8_t * r
 }
 
 
+/* ---- Fase 3: orden AT de prueba (paso 5 del modo test) ---- */
+/* Reserva huart1 mediante el protocolo COMM_request para no pisar    */
+/* a Task_COMM ni a Task_TIME. Devuelve 1 si se ejecuto, 0 si ocupado */
+int Test_SendAT(void) {
+    unsigned int ct;
 
+    if (xSemaphoreTake(COMM_xSem, 2000/portTICK_RATE_MS) != pdTRUE)
+        return 0;
+    if (COMM_request.command != 0) {
+        xSemaphoreGive(COMM_xSem);
+        return 0;
+    }
+    COMM_request.command = 2;          /* marcar el recurso como ocupado */
+    xSemaphoreGive(COMM_xSem);
+
+    /* uso exclusivo de huart1 garantizado */
+    for (ct = 0; ct < 2048; ct++) buff_recv[ct] = 0;
+    HAL_UART_Receive_DMA(&huart1, buff_recv, 2048);
+    HAL_UART_Transmit(&huart1, (unsigned char *)"AT\r\n", strlen("AT\r\n"), 1000);
+    vTaskDelay(300/portTICK_RATE_MS);
+    HAL_UART_DMAStop(&huart1);
+    bprintf("TEST AT -> %s\r\n", (char *)buff_recv);
+
+    if (xSemaphoreTake(COMM_xSem, 2000/portTICK_RATE_MS) == pdTRUE) {
+        COMM_request.command = 0;
+        xSemaphoreGive(COMM_xSem);
+    }
+    return 1;
+}

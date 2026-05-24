@@ -64,6 +64,7 @@ uint8_t * ESP_Send_Request(uint8_t * dst_address, uint32_t dst_port, uint8_t * r
 extern uint32_t global_comm_it;
 void Task_COMM_init(void);
 void Task_COMM( void *pvParameters );
+int Test_SendAT(void);
 
 
 #endif /* INC_TASK_COMM_H_ */
