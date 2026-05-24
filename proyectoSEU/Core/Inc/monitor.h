@@ -38,7 +38,7 @@ extern uint32_t subidaDER;
 extern sensor_t sensor_ldr;
 extern sensor_t sensor_ntc;
 extern alarm_state_t alarm_state;
-extern char alarma_src[13];
+extern char alarma_src[24];
 
 
 /* ---- Fase 2: sincronizacion del modelo compartido ---- */
@@ -47,13 +47,14 @@ typedef struct {
     sensor_t      ldr;
     uint8_t       mode;
     alarm_state_t alarm;
-    char          alarma_src[13];
+    char          alarma_src[24];
 } monitor_snapshot_t;
 
 void    Monitor_GetSnapshot(monitor_snapshot_t *snap);
 uint8_t Monitor_GetMode(void);
 void    Monitor_LockModel(void);
 void    Monitor_UnlockModel(void);
+void    Monitor_ProcessRemoteAlarmaSrc(const char *value);
 
 
 #endif /* INC_MONITOR_H_ */

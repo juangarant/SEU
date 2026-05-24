@@ -45,7 +45,7 @@ uint32_t bajadaDER;
 uint32_t subidaIZQ;
 uint32_t subidaDER;
 uint8_t g_mode;
-char alarma_src[13] = "SensorSEU_05";
+char alarma_src[24] = "SensorSEU_05";
 SemaphoreHandle_t monitor_xMutex = NULL;
 static uint32_t mode_show_until = 0;   /* Fase 4: tick hasta el que se muestra el modo */
 static int clon_alarm_silenced = 0;   /* Fase 5: buzzer del clon silenciado por boton 2 */
@@ -207,6 +207,7 @@ static void Process_Buttons(void) {
                 /* modo clon: silenciar el buzzer del clon */
                 clon_alarm_silenced = 1;
                 HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+                CLONE_request_silence();   /* Fase 5: avisar al nodo real via Alarma_src */
             } else if (alarm_state == ALARM_ACTIVE) {
                 /* la alarma suena -> apagarla (igual que en el entregable 1) */
                 alarm_state = ALARM_COOLDOWN;
@@ -488,4 +489,25 @@ uint8_t Monitor_GetMode(void) {
     m = g_mode;
     Monitor_UnlockModel();
     return m;
+}
+
+/* ---- Fase 5: el nodo conectado honra una orden de apagado de un nodo clon ---- */
+void Monitor_ProcessRemoteAlarmaSrc(const char *value) {
+    int changed = 0;
+    if (value == NULL || value[0] == 0) return;
+    Monitor_LockModel();
+    if (strncmp(value, alarma_src, sizeof(alarma_src)) != 0) {
+        /* Alarma_src ha cambiado: un nodo clon pide apagar la alarma */
+        strncpy(alarma_src, value, sizeof(alarma_src) - 1);
+        alarma_src[sizeof(alarma_src) - 1] = 0;
+        if (alarm_state == ALARM_ACTIVE) {
+            alarm_state = ALARM_COOLDOWN;
+            alarm_cooldown_start = HAL_GetTick();
+            HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+        }
+        changed = 1;
+    }
+    Monitor_UnlockModel();
+    if (changed)
+        bprintf("ORION: orden de apagado recibida de un nodo clon (%s)\r\n", value);
 }
