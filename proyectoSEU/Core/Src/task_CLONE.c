@@ -24,7 +24,7 @@ float clone_alarma_ldr    = 0.0f;
 uint8_t clone_alarma_activa = 0;
 
 static uint8_t clone_request[256];
-static char    clone_node[32] = "SensorSEU_00"; // nodo por defecto
+static volatile uint8_t clone_node_index = 0;   /* nodo a clonar 0..26 (lo fija el potenciometro) */
 
 void Task_CLONE_init(void) {
     BaseType_t res;
@@ -39,13 +39,14 @@ void Task_CLONE_init(void) {
 
 // Selecciona el nodo a clonar según el potenciómetro (0–26)
 void CLONE_select_node(uint8_t node_index) {
-    snprintf(clone_node, sizeof(clone_node), "SensorSEU_%02d", node_index);
-    bprintf("CLONE: clonando %s\r\n", clone_node);
+    if (node_index > 26) node_index = 26;
+    clone_node_index = node_index;   /* escritura atomica de 1 byte */
 }
 
 void Task_CLONE(void *pvParameters) {
 
     int signal;
+    uint8_t last_idx = 0xFF;   /* para imprimir el nodo clonado solo al cambiar */
     cJSON *json, *elem, *attrs, *attr, *name_item, *val_item;
 
     while (1) {
@@ -57,12 +58,17 @@ void Task_CLONE(void *pvParameters) {
         }
 
         // Construir la petición GET al Context Broker
+        if (clone_node_index != last_idx) {
+            last_idx = clone_node_index;
+            bprintf("CLONE: clonando SensorSEU_%02d\r\n", clone_node_index);
+        }
+
         snprintf((char *)clone_request, sizeof(clone_request),
-            "GET /v2/entities/%s HTTP/1.1\r\n"
+            "GET /v2/entities/SensorSEU_%02d HTTP/1.1\r\n"
             "Host: %s\r\n"
             "Accept: application/json\r\n"
             "\r\n",
-            clone_node,
+            clone_node_index,
             SERVER_IP
         );
 

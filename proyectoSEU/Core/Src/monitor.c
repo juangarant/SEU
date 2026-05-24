@@ -48,6 +48,7 @@ uint8_t g_mode;
 char alarma_src[13] = "SensorSEU_05";
 SemaphoreHandle_t monitor_xMutex = NULL;
 static uint32_t mode_show_until = 0;   /* Fase 4: tick hasta el que se muestra el modo */
+static int clon_alarm_silenced = 0;   /* Fase 5: buzzer del clon silenciado por boton 2 */
 
 
 //leds
@@ -202,7 +203,11 @@ static void Process_Buttons(void) {
     /* Boton 2 (derecho): al soltar */
     if (btn_der == 1 && btn_der_last == 0) {
         if (!combo_pressed) {
-            if (alarm_state == ALARM_ACTIVE) {
+            if (g_mode == MODE_CLON && clone_alarma_activa && !clon_alarm_silenced) {
+                /* modo clon: silenciar el buzzer del clon */
+                clon_alarm_silenced = 1;
+                HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+            } else if (alarm_state == ALARM_ACTIVE) {
                 /* la alarma suena -> apagarla (igual que en el entregable 1) */
                 alarm_state = ALARM_COOLDOWN;
                 alarm_cooldown_start = now;
@@ -376,6 +381,26 @@ static void Show_Mode_Leds(void) {
                           (i < n) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
+/* ---- Fase 5: seleccion del nodo a clonar con el potenciometro ---- */
+static void Clone_Select_From_Pot(void) {
+    uint32_t pot = ADC_ReadChannel(CH_POT);
+    uint8_t  idx = (uint8_t)((pot * 27) / 4096);   /* mapea 0..4095 a 0..26 */
+    if (idx > 26) idx = 26;
+    CLONE_select_node(idx);
+}
+
+/* ---- Fase 5: el buzzer del clon refleja la alarma del nodo clonado ---- */
+static void Update_Clone_Alarm(void) {
+    if (clone_alarma_activa && !clon_alarm_silenced)
+        HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_SET);
+    else
+        HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+
+    /* cuando el nodo remoto deja de tener alarma, el clon se rearma */
+    if (!clone_alarma_activa)
+        clon_alarm_silenced = 0;
+}
+
 void Monitor_Init(void) {
     // Asegurar que todo inicie apagado
     for (int i = 0; i < 8; i++) {
@@ -418,11 +443,13 @@ void Monitor_Loop(void) {
                 break;
 
             case MODE_CLON:
+                Clone_Select_From_Pot();
                 Monitor_LockModel();
                 if (HAL_GetTick() < mode_show_until)
                     Show_Mode_Leds();
                 else
                     Update_Display_Clone();
+                Update_Clone_Alarm();
                 Monitor_UnlockModel();
                 break;
 
