@@ -100,8 +100,8 @@ void Task_ORION(void *pvParameters) {
             if (COMM_request.command == 0) {
                 COMM_request.command     = 1;
                 COMM_request.result      = 0;
-                COMM_request.dst_port    = 1026;
-                COMM_request.dst_address = (uint8_t *)"158.42.180.130";
+                COMM_request.dst_port    = ORION_PORT;
+                COMM_request.dst_address = (uint8_t *)SERVER_IP;
                 COMM_request.HTTP_request = orion_request;
                 signal = 0;
                 xSemaphoreGive(COMM_xSem);
