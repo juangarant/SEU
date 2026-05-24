@@ -40,10 +40,6 @@ uint32_t alarm_cooldown_start = 0;
 uint8_t btn_izq_last = 1;
 uint8_t btn_der_last = 1;
 
-uint32_t bajadaIZQ;
-uint32_t bajadaDER;
-uint32_t subidaIZQ;
-uint32_t subidaDER;
 uint8_t g_mode;
 char alarma_src[24] = "SensorSEU_05";
 SemaphoreHandle_t monitor_xMutex = NULL;

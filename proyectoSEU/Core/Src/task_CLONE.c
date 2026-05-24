@@ -33,7 +33,7 @@ void Task_CLONE_init(void) {
     BaseType_t res;
     global_clone_it = 0;
 
-    res = xTaskCreate(Task_CLONE, "CLONE", 2048, NULL, NORMAL_PRIORITY, NULL);
+    res = xTaskCreate(Task_CLONE, "CLONE", 768, NULL, NORMAL_PRIORITY, NULL);
     if (res != pdPASS) {
         bprintf("PANIC: Error al crear Tarea CLONE\r\n");
         while(1);
@@ -55,7 +55,7 @@ void Task_CLONE(void *pvParameters) {
 
     int signal;
     uint8_t last_idx = 0xFF;   /* para imprimir el nodo clonado solo al cambiar */
-    cJSON *json, *elem, *attrs, *attr, *name_item, *val_item;
+    cJSON *json;
 
     while (1) {
 

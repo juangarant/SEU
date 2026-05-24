@@ -23,7 +23,7 @@ void Task_ORION_init(void) {
     BaseType_t res;
     global_orion_it = 0;
 
-    res = xTaskCreate(Task_ORION, "ORION", 2048, NULL, NORMAL_PRIORITY, NULL);
+    res = xTaskCreate(Task_ORION, "ORION", 1024, NULL, NORMAL_PRIORITY, NULL);
     if (res != pdPASS) {
         bprintf("PANIC: Error al crear Tarea ORION\r\n");
         while(1);

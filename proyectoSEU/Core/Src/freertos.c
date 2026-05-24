@@ -24,7 +24,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,7 +44,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-
+extern UART_HandleTypeDef huart2;
 /* USER CODE END Variables */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -54,6 +54,15 @@
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-
+/* Fase 6: hook de desbordamiento de pila (configCHECK_FOR_STACK_OVERFLOW) */
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
+{
+    const char *m = "\r\nPANIC: STACK OVERFLOW: ";
+    (void)xTask;
+    HAL_UART_Transmit(&huart2, (uint8_t *)m, strlen(m), 1000);
+    HAL_UART_Transmit(&huart2, (uint8_t *)pcTaskName, strlen(pcTaskName), 1000);
+    HAL_UART_Transmit(&huart2, (uint8_t *)"\r\n", 2, 1000);
+    HAL_NVIC_SystemReset();
+}
 /* USER CODE END Application */
 

@@ -20,13 +20,9 @@
 
 scomm_request_t COMM_request;
 SemaphoreHandle_t COMM_xSem = NULL;
-SemaphoreHandle_t COMM_WAIT_xSem = NULL;
 uint32_t global_comm_it;
 
 uint8_t buff_recv[2048];
-
-uint32_t global_wifi_it;
-uint32_t global_wifi_ready;
 
  uint8_t aux_buff_WIFI[2048];
  uint8_t buff_WIFI_response[2048];
@@ -44,16 +40,7 @@ void Task_COMM_init(void){
 		while(1);
 	}
 
-	COMM_WAIT_xSem= xSemaphoreCreateBinary();
-
-		if( COMM_WAIT_xSem == NULL ){
-			printf("PANIC: Error al crear el Semáforo ORION 2\r\n");
-			fflush(NULL);
-			while(1);
-		}
-
-
- 	res_task=xTaskCreate(Task_COMM,"COMMUNICATION",2048,NULL,	NORMAL_PRIORITY,NULL);
+ 	res_task=xTaskCreate(Task_COMM,"COMMUNICATION",512,NULL,	NORMAL_PRIORITY,NULL);
  	if( res_task != pdPASS ){
  	 				printf("PANIC: Error al crear Tarea Comunicaciones\r\n");
  	 				fflush(NULL);

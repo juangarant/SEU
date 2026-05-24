@@ -24,7 +24,7 @@ void Task_EJER3_init(void){
 
 	global_ejer3_it=0;
 
-	res_task=xTaskCreate(Task_EJER3,"EJER3",2048,NULL,	NORMAL_PRIORITY,NULL);
+	res_task=xTaskCreate(Task_EJER3,"EJER3",512,NULL,	NORMAL_PRIORITY,NULL);
  	if( res_task != pdPASS ){
  	 				printf("PANIC: Error al crear Tarea Ejer3\r\n");
  	 				fflush(NULL);

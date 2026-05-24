@@ -29,7 +29,7 @@ void CONFIGURACION_INICIAL(void){
 
 	Console_Init(); /* Fase 2: crear el mutex de la consola */
 
-	res_task=xTaskCreate(Task_CONSOLE,"CONSOLA",2048,NULL,	NORMAL_PRIORITY,NULL);
+	res_task=xTaskCreate(Task_CONSOLE,"CONSOLA",256,NULL,	NORMAL_PRIORITY,NULL);
  		if( res_task != pdPASS ){
  				printf("PANIC: Error al crear Tarea Visualizador\r\n");
  				fflush(NULL);

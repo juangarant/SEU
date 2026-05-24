@@ -37,8 +37,7 @@ void Task_TIME_init(void){
 	BaseType_t res_task;
 	time_xMutex = xSemaphoreCreateMutex();
 	global_time_it=0;
-	global_wifi_ready=0;
-	res_task=xTaskCreate( Task_TIME,"TIME",2048,NULL,	NORMAL_PRIORITY,NULL);
+	res_task=xTaskCreate( Task_TIME,"TIME",768,NULL,	NORMAL_PRIORITY,NULL);
 	if( res_task != pdPASS ){
 		bprintf("PANIC: Error al crear Tarea TIME\r\n");
 		fflush(NULL);

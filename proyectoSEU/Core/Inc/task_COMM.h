@@ -33,8 +33,6 @@ typedef struct REQUEST_DUMMY {
 
 extern scomm_request_t COMM_request;
 extern SemaphoreHandle_t COMM_xSem;
-extern SemaphoreHandle_t COMM_WAIT_xSem;
-extern uint32_t global_wifi_ready;
 
 extern uint8_t buff_json[2048];
 extern uint8_t buff_request[2048];
@@ -52,8 +50,8 @@ extern uint8_t buff_recv[2048];
 
 
 // WIFI
-#define SSID			  "routerSEU"
-#define SSID_PASS		  "00000000"
+#define SSID			  "Tus Queridos Vecinos_EXT"
+#define SSID_PASS		  "dame el wifi"
 
 void WIFI_RESET(void);
 void WIFI_Boot(void);
@@ -67,4 +65,4 @@ void Task_COMM( void *pvParameters );
 int Test_SendAT(void);
 
 
-#endif /* INC_TASK_COMM_H_ */
+#endif /* IN
