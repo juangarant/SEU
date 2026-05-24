@@ -224,7 +224,14 @@ void WIFI_Boot(void)
 		(unsigned char *)"AT+CWJAP=\"" SSID "\",\"" SSID_PASS "\"\r\n",
 		strlen("AT+CWJAP=\"" SSID "\",\"" SSID_PASS "\"\r\n"), 10000);
 
-	vTaskDelay(5000/portTICK_RATE_MS );
+	/* Esperar (hasta 15 s) a que el ESP se una a la red WiFi o falle */
+	{
+		TickType_t t0 = xTaskGetTickCount();
+		while (strstr((char *)buff_recv, "WIFI GOT IP") == NULL
+		    && strstr((char *)buff_recv, "FAIL")        == NULL
+		    && (xTaskGetTickCount() - t0) < (15000/portTICK_RATE_MS))
+			vTaskDelay(100/portTICK_RATE_MS);
+	}
 	HAL_UART_DMAStop(&huart1);
 
 	/* Comprobar si el ESP8266 se ha unido a la red WiFi */
