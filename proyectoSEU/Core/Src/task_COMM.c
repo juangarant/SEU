@@ -226,6 +226,14 @@ void WIFI_Boot(void)
 
 	vTaskDelay(5000/portTICK_RATE_MS );
 	HAL_UART_DMAStop(&huart1);
+
+	/* Comprobar si el ESP8266 se ha unido a la red WiFi */
+	if (strstr((char *)buff_recv, "WIFI GOT IP") != NULL) {
+		bprintf("WIFI: conectado a la red \"%s\"\r\n", SSID);
+	} else {
+		bprintf("WIFI: ERROR - no se pudo conectar a la red \"%s\"\r\n", SSID);
+		bprintf("WIFI: respuesta del ESP8266 -> %s\r\n", (char *)buff_recv);
+	}
 	bprintf("Initialized.\r\n");
 
 }
@@ -294,8 +302,11 @@ uint8_t * ESP_Send_Request(uint8_t * dst_address, uint32_t dst_port, uint8_t * r
     						HAL_UART_Receive_DMA(&huart1, buff_recv,2048);
     						sprintf(( char *)aux_buff_WIFI,"AT+CIPSTART=\"TCP\",\"%s\",%d\r\n",dst_address,(int)dst_port);
     						HAL_UART_Transmit(&huart1, ( unsigned char *) aux_buff_WIFI,strlen((const char *)aux_buff_WIFI),10000);
-    						if (ESP_TimeOut(2000,buff_recv,"CONNECT\r\n", "CONNECT",buff_recv))
+    						if (ESP_TimeOut(2000,buff_recv,"CONNECT\r\n", "CONNECT",buff_recv)) {
+    							bprintf("COMM: ERROR - no se pudo conectar al servidor %s:%d\r\n", (char *)dst_address, (int)dst_port);
+    							HAL_UART_DMAStop(&huart1);
     							return NULL;
+    						}
     						//vTaskDelay(400/portTICK_RATE_MS );
     						HAL_UART_DMAStop(&huart1);
     						//bprintf("6e: %s",buff_recv);
