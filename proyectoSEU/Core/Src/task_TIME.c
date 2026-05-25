@@ -91,23 +91,33 @@ void Task_TIME( void *pvParameters ){
 	jsons1 = cJSON_Parse((const char *)COMM_request.HTTP_response);
 	if (jsons1) {
 				name = cJSON_GetObjectItem(jsons1, "tiempo_actual");
-			    struct tm tm_date = {0};
-			    int year, month, day, hour, minute, second;
-			    sscanf(name->valuestring, "%d-%d-%d %d:%d:%d", &year, &month, &day, &hour, &minute, &second);
-			    tm_date.tm_year = year - 1900; // Ajustar año
-			    tm_date.tm_mon = month - 1;    // Ajustar mes
-			    tm_date.tm_mday = day;
-			    tm_date.tm_hour = hour;
-			    tm_date.tm_min = minute;
-			    tm_date.tm_sec = second;
-			    tm_date.tm_isdst = -1;         // Dejar que la biblioteca determine el DST
 
-			    // Obtener la fecha de inicio (protegido por mutex)
-			    Time_Lock();
-			    tm_offset = mktime(&tm_date);
-			    ticks_since_start_ts = xTaskGetTickCount();
-			    time_available = 1;
-			    Time_Unlock();
+			    if (cJSON_IsString(name) && name->valuestring != NULL) {
+			        struct tm tm_date = {0};
+			        int year, month, day, hour, minute, second;
+			        int campos = sscanf(name->valuestring, "%d-%d-%d %d:%d:%d",
+			                            &year, &month, &day, &hour, &minute, &second);
+			        if (campos == 6) {
+			            tm_date.tm_year  = year - 1900; // Ajustar año
+			            tm_date.tm_mon   = month - 1;   // Ajustar mes
+			            tm_date.tm_mday  = day;
+			            tm_date.tm_hour  = hour;
+			            tm_date.tm_min   = minute;
+			            tm_date.tm_sec   = second;
+			            tm_date.tm_isdst = -1;          // Dejar que la biblioteca determine el DST
+
+			            // Obtener la fecha de inicio (protegido por mutex)
+			            Time_Lock();
+			            tm_offset = mktime(&tm_date);
+			            ticks_since_start_ts = xTaskGetTickCount();
+			            time_available = 1;
+			            Time_Unlock();
+			        } else {
+			            bprintf("TIME: formato de fecha invalido\r\n");
+			        }
+			    } else {
+			        bprintf("TIME: campo 'tiempo_actual' ausente\r\n");
+			    }
 			    cJSON_Delete(jsons1);
 	}
 	else
