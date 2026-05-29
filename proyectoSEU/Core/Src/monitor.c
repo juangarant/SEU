@@ -418,7 +418,10 @@ void Monitor_Init(void) {
     HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
 
     g_mode = MODE_CONECTADO; // Modo inicial
-    bprintf("MODE: arranque en %s (%u)\r\n", Mode_Name(g_mode), (unsigned)g_mode);
+    /* OJO: aqui NO se puede llamar a bprintf todavia: Monitor_Init() corre
+     * antes que CONFIGURACION_INICIAL(), asi que IObuff aun es NULL y la
+     * consola no esta arrancada. El mensaje de modo se imprime en la
+     * primera iteracion de Monitor_Loop. */
 
     // Fase 2: mutex que protege el modelo compartido
     monitor_xMutex = xSemaphoreCreateMutex();
@@ -426,8 +429,15 @@ void Monitor_Init(void) {
 
 void Monitor_Loop(void) {
     static uint32_t last_cycle = 0;
+    static int      mode_announced = 0;
     uint32_t current = HAL_GetTick();
     uint8_t  mode;
+
+    /* Aviso de arranque: aqui la consola ya esta viva (lo hacemos una sola vez) */
+    if (!mode_announced) {
+        mode_announced = 1;
+        bprintf("MODE: arranque en %s (%u)\r\n", Mode_Name(g_mode), (unsigned)g_mode);
+    }
 
     /* Ejecutar cada 20 ms */
     if (current - last_cycle >= 20) {
