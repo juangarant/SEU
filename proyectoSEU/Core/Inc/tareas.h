@@ -36,6 +36,11 @@
 #define ORION_PORT  1026
 #define TIME_PORT   5000
 
+/* ---- Modos de funcionamiento (valores que toma g_mode) ---- */
+#define MODE_CONECTADO  0   /* publica sensores en el broker Orion        */
+#define MODE_CLON       1   /* clona los datos de otro nodo SensorSEU_XX  */
+#define MODE_TEST       2   /* secuencia de auto-test del hardware        */
+
 // seminario 6
 
 #define HIGH_PRIORITY (( configMAX_PRIORITIES - 1 )>>1)+1

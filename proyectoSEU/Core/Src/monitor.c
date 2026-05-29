@@ -46,6 +46,16 @@ SemaphoreHandle_t monitor_xMutex = NULL;
 static uint32_t mode_show_until = 0;   /* Fase 4: tick hasta el que se muestra el modo */
 static int clon_alarm_silenced = 0;   /* Fase 5: buzzer del clon silenciado por boton 2 */
 
+/* Nombre legible del modo, para los mensajes por consola */
+static const char *Mode_Name(uint8_t m) {
+    switch (m) {
+        case MODE_CONECTADO: return "CONECTADO";
+        case MODE_CLON:      return "CLON";
+        case MODE_TEST:      return "TEST";
+        default:             return "DESCONOCIDO";
+    }
+}
+
 
 //leds
 /*GPIO_TypeDef* LED_PORT[8] = {LED1_GPIO_Port, LED2_GPIO_Port, LED3_GPIO_Port, LED4_GPIO_Port, 
@@ -185,8 +195,10 @@ static void Process_Buttons(void) {
             combo_fired   = 0;
             combo_start   = now;
         } else if (!combo_fired && (now - combo_start >= 1000)) {
-            g_mode      = (g_mode + 1) % 3;   /* 0=conectado 1=clon 2=test */
+            /* Cicla MODE_CONECTADO -> MODE_CLON -> MODE_TEST -> MODE_CONECTADO */
+            g_mode      = (uint8_t)((g_mode + 1) % (MODE_TEST + 1));
             combo_fired = 1;
+            bprintf("MODE: cambiado a %s (%u)\r\n", Mode_Name(g_mode), (unsigned)g_mode);
         }
     }
 
@@ -405,7 +417,8 @@ void Monitor_Init(void) {
     }
     HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
 
-    g_mode = 0; // Modo inicial
+    g_mode = MODE_CONECTADO; // Modo inicial
+    bprintf("MODE: arranque en %s (%u)\r\n", Mode_Name(g_mode), (unsigned)g_mode);
 
     // Fase 2: mutex que protege el modelo compartido
     monitor_xMutex = xSemaphoreCreateMutex();

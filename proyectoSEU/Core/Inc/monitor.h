@@ -7,6 +7,7 @@
 #define INC_MONITOR_H_
 
 #include "main.h"
+#include "tareas.h"   /* trae las constantes MODE_CONECTADO/CLON/TEST */
 
 // Estructura sugerida para manejar los sensores
 typedef struct {
@@ -24,11 +25,7 @@ typedef struct {
 void Monitor_Init(void);
 void Monitor_Loop(void);
 
-/* ---- Fase 3: modos de funcionamiento (valores de g_mode) ---- */
-#define MODE_CONECTADO  0
-#define MODE_CLON       1
-#define MODE_TEST       2
-
+/* MODE_CONECTADO / MODE_CLON / MODE_TEST estan ahora en tareas.h */
 extern uint8_t g_mode;
 typedef enum { ALARM_IDLE, ALARM_ACTIVE, ALARM_COOLDOWN } alarm_state_t;
 extern sensor_t sensor_ldr;
