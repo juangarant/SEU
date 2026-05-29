@@ -21,6 +21,7 @@
 scomm_request_t COMM_request;
 SemaphoreHandle_t COMM_xSem = NULL;
 uint32_t global_comm_it;
+volatile int global_wifi_ready = 0;   /* 1 = ESP unido a la red. Lo gestiona WIFI_Boot/ESP_Send_Request */
 
 uint8_t buff_recv[2048];
 
@@ -55,6 +56,17 @@ void Task_COMM( void *pvParameters ){
 	WIFI_Boot();
 
 	while (1) {
+
+		/* Si el WiFi no esta conectado, no malgastar CPU sirviendo peticiones que
+		   van a fallar: reintentar la conexion periodicamente. Mientras tanto las
+		   tareas peticionarias (ORION/CLONE/TIME) tambien esperan gracias a
+		   global_wifi_ready, asi no saturan a Task_COMM. */
+		if (!global_wifi_ready) {
+			vTaskDelay(8000/portTICK_RATE_MS);
+			bprintf("WIFI: reintentando conexion...\r\n");
+			WIFI_Boot();
+			continue;
+		}
 
 	    signal=1;
 		do {
@@ -223,8 +235,10 @@ void WIFI_Boot(void)
 
 	/* Comprobar si el ESP8266 se ha unido a la red WiFi */
 	if (strstr((char *)buff_recv, "WIFI GOT IP") != NULL) {
+		global_wifi_ready = 1;
 		bprintf("WIFI: conectado a la red \"%s\"\r\n", SSID);
 	} else {
+		global_wifi_ready = 0;
 		bprintf("WIFI: ERROR - no se pudo conectar a la red \"%s\"\r\n", SSID);
 		bprintf("WIFI: respuesta del ESP8266 -> %s\r\n", (char *)buff_recv);
 	}
@@ -250,7 +264,7 @@ int ESP_TimeOut_tworesponses(TickType_t timeout,char *src,char * resp,char * res
 		    (xTaskGetTickCount()-localtimeout)<(timeout/portTICK_RATE_MS)
 		   )
 		  )
-		{};
+		{ vTaskDelay(5/portTICK_RATE_MS); };   /* ceder CPU: el DMA llena buff_recv en 2o plano */
 
 	if ((xTaskGetTickCount()-localtimeout)>=(timeout/portTICK_RATE_MS)){
 		 bprintf("%s: %s\r\n", msg1, "TIMEOUT2");
@@ -270,7 +284,7 @@ int ESP_TimeOut(TickType_t timeout,char *src,char * resp, char *msg1,char * msg)
 
 	localtimeout=xTaskGetTickCount();
 	while ((strstr(src,resp)==NULL)&&((xTaskGetTickCount()-localtimeout)<(timeout/portTICK_RATE_MS)))
-		{};
+		{ vTaskDelay(5/portTICK_RATE_MS); };   /* ceder CPU: el DMA llena buff_recv en 2o plano */
 
 	if ((xTaskGetTickCount()-localtimeout)>=(timeout/portTICK_RATE_MS)){
 		 bprintf("%s: %s\r\n", msg1, "TIMEOUT");
@@ -284,6 +298,7 @@ uint8_t * ESP_Send_Request(uint8_t * dst_address, uint32_t dst_port, uint8_t * r
     int ct;
     int st;
     int lc;
+    static int connect_fails = 0;   /* solo Task_COMM llama aqui -> static seguro */
 
     st=1;
 
@@ -299,8 +314,16 @@ uint8_t * ESP_Send_Request(uint8_t * dst_address, uint32_t dst_port, uint8_t * r
     						if (ESP_TimeOut(2000,buff_recv,"CONNECT\r\n", "CONNECT",buff_recv)) {
     							bprintf("COMM: ERROR - no se pudo conectar al servidor %s:%d\r\n", (char *)dst_address, (int)dst_port);
     							HAL_UART_DMAStop(&huart1);
+    							if (++connect_fails >= 3) {
+    								/* 3 fallos seguidos: probablemente se cayo el WiFi ->
+    								   forzar re-conexion en Task_COMM */
+    								global_wifi_ready = 0;
+    								connect_fails = 0;
+    								bprintf("COMM: 3 fallos seguidos -> se forzara reconexion WiFi\r\n");
+    							}
     							return NULL;
     						}
+    						connect_fails = 0;   /* conexion TCP correcta */
     						//vTaskDelay(400/portTICK_RATE_MS );
     						HAL_UART_DMAStop(&huart1);
     						//bprintf("6e: %s",buff_recv);

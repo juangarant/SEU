@@ -33,6 +33,19 @@ typedef struct REQUEST_DUMMY {
 
 extern scomm_request_t COMM_request;
 extern SemaphoreHandle_t COMM_xSem;
+extern volatile int global_wifi_ready;   /* 1 = ESP unido a la red WiFi */
+
+/* Espera ACOTADA a que Task_COMM marque result==1. Evita cuelgues permanentes
+   (p.ej. si COMM esta reconectando el WiFi): tras ~30 s deja de esperar y el
+   codigo posterior libera command/result como de costumbre. */
+#define COMM_WAIT_RESULT()                                              \
+	do {                                                               \
+		int _g = 0;                                                    \
+		while (COMM_request.result != 1) {                             \
+			vTaskDelay(10 / portTICK_RATE_MS);                         \
+			if (++_g > 3000) break;                                    \
+		}                                                              \
+	} while (0)
 
 #include "main.h"
 #include <stdint.h>

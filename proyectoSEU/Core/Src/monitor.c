@@ -463,7 +463,7 @@ void Monitor_Loop(void) {
                 break;
 
             case MODE_CLON:
-                Clone_Select_From_Pot();
+                //Clone_Select_From_Pot();
                 Monitor_LockModel();
                 if (HAL_GetTick() < mode_show_until)
                     Show_Mode_Leds();

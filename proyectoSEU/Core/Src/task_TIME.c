@@ -56,6 +56,12 @@ void Task_TIME( void *pvParameters ){
 
 	while (1) {
 
+		/* Sin WiFi no tiene sentido pedir la hora: esperar sin saturar a COMM */
+		if (!global_wifi_ready) {
+			vTaskDelay(3000/portTICK_RATE_MS);
+			continue;
+		}
+
 		signal=1;
 		do {
 			if (xSemaphoreTake(COMM_xSem, 20000/portTICK_RATE_MS  ) != pdTRUE ){// si en 20 segundos no he continuado entrado en orion mmm mal rollito harakiri
@@ -85,7 +91,7 @@ void Task_TIME( void *pvParameters ){
 		}while(signal);
 
   		// Here you must parse json response in COMM_request.response item
-		while (COMM_request.result!=1) vTaskDelay(10/portTICK_RATE_MS );
+		COMM_WAIT_RESULT();
 
 ////
 	jsons1 = cJSON_Parse((const char *)COMM_request.HTTP_response);
@@ -126,7 +132,8 @@ void Task_TIME( void *pvParameters ){
 ////
 	    COMM_request.result=0;
 		COMM_request.command=0; // this thread liberates requesting structure for others threads
-		xSemaphoreGive(COMM_xSem); // i’m going out critical section
+		/* NO hay xSemaphoreGive aqui: el mutex ya se libero dentro del do-while.
+		   El give de mas (sobre un mutex no poseido) era un bug. */
 
 		global_time_it++;
 		vTaskDelay(100000/portTICK_RATE_MS); // cada 100 segundos pide el time, podria ser cada más tiempo, en función de la deriva o cada menos para hacer pruebas.

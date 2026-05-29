@@ -46,6 +46,12 @@ void Task_ORION(void *pvParameters) {
             continue;
         }
 
+        // Sin WiFi: esperar sin saturar a Task_COMM
+        if (!global_wifi_ready) {
+            vTaskDelay(3000 / portTICK_RATE_MS);
+            continue;
+        }
+
         /* Fase 5: leer el propio Alarma_src del broker para honrar a un nodo clon */
         snprintf((char *)orion_request, sizeof(orion_request),
             "GET /v2/entities/%s/attrs/Alarma_src HTTP/1.1\r\n"
@@ -73,8 +79,7 @@ void Task_ORION(void *pvParameters) {
                 vTaskDelay(10 / portTICK_RATE_MS);
             }
         } while (signal);
-        while (COMM_request.result != 1)
-            vTaskDelay(10 / portTICK_RATE_MS);
+        COMM_WAIT_RESULT();
         {
             cJSON *j = cJSON_Parse((const char *)COMM_request.HTTP_response);
             if (j) {
@@ -157,8 +162,7 @@ void Task_ORION(void *pvParameters) {
         } while (signal);
 
         // Esperar respuesta
-        while (COMM_request.result != 1)
-            vTaskDelay(10 / portTICK_RATE_MS);
+        COMM_WAIT_RESULT();
 
         bprintf("ORION: publicado it=%lu\r\n", global_orion_it);
         COMM_request.result  = 0;
@@ -166,7 +170,7 @@ void Task_ORION(void *pvParameters) {
 
         global_orion_it++;
 
-        // Publicar cada 10 segundos
-        vTaskDelay(10000 / portTICK_RATE_MS);
+        // Publicar cada 3 segundos (mejor latencia de silenciado remoto via Alarma_src)
+        vTaskDelay(3000 / portTICK_RATE_MS);
     }
 }

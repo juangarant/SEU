@@ -65,6 +65,12 @@ void Task_CLONE(void *pvParameters) {
             continue;
         }
 
+        // Sin WiFi: esperar sin saturar a Task_COMM
+        if (!global_wifi_ready) {
+            vTaskDelay(3000 / portTICK_RATE_MS);
+            continue;
+        }
+
         // Construir la petición GET al Context Broker
         if (clone_node_index != last_idx) {
             last_idx = clone_node_index;
@@ -102,8 +108,7 @@ void Task_CLONE(void *pvParameters) {
         } while (signal);
 
         // Esperar respuesta
-        while (COMM_request.result != 1)
-            vTaskDelay(10 / portTICK_RATE_MS);
+        COMM_WAIT_RESULT();
 
         // Parsear el JSON de respuesta
         json = cJSON_Parse((const char *)COMM_request.HTTP_response);
@@ -178,8 +183,7 @@ void Task_CLONE(void *pvParameters) {
                     vTaskDelay(10 / portTICK_RATE_MS);
                 }
             } while (signal);
-            while (COMM_request.result != 1)
-                vTaskDelay(10 / portTICK_RATE_MS);
+            COMM_WAIT_RESULT();
             COMM_request.result  = 0;
             COMM_request.command = 0;
             bprintf("CLONE: Alarma_src enviado a SensorSEU_%02d (seq=%u)\r\n",
@@ -188,7 +192,7 @@ void Task_CLONE(void *pvParameters) {
 
         global_clone_it++;
 
-        // Consultar cada 5 segundos
-        vTaskDelay(5000 / portTICK_RATE_MS);
+        // Consultar cada 3 segundos (mejor latencia de la alarma del nodo clonado)
+        vTaskDelay(3000 / portTICK_RATE_MS);
     }
 }
