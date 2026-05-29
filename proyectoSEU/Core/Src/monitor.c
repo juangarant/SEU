@@ -463,8 +463,12 @@ void Monitor_Loop(void) {
                 break;
 
             case MODE_CLON:
-                //Clone_Select_From_Pot();
-                Monitor_LockModel();
+                #ifdef CLONE_NODO_FIJO
+                    CLONE_select_node(CLONE_NODO_FIJO);   /* pruebas: siempre SensorSEU_10 */
+                #else
+                    Clone_Select_From_Pot();              /* normal: lo elige el potenciometro */
+                #endif
+                    Monitor_LockModel();
                 if (HAL_GetTick() < mode_show_until)
                     Show_Mode_Leds();
                 else

@@ -31,7 +31,9 @@
 
 // Orion Context IoT name
 #define IoT_NAME   	 	  "SensorSEU_70"
-#define IoT_NAME_CLONE    "SensorSEU_ZL"
+/* --- PRUEBAS: fijar el nodo a clonar en vez de leer el potenciometro --- */
+/* Comenta esta linea para volver al comportamiento normal (potenciometro). */
+#define CLONE_NODO_FIJO  10
 #define SERVER_IP  "192.168.1.166"
 #define ORION_PORT  1026
 #define TIME_PORT   5000
