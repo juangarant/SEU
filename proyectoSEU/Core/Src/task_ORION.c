@@ -18,6 +18,9 @@ uint32_t global_orion_it;
 
 static uint8_t orion_body[1024];
 static uint8_t orion_request[1280];
+static uint8_t orion_get_count;
+
+#define ORION_GETS_PER_POST 3
 
 void Task_ORION_init(void) {
     BaseType_t res;
@@ -36,6 +39,7 @@ void Task_ORION(void *pvParameters) {
     monitor_snapshot_t snap;
 
     while (1) {
+        uint8_t do_post;
 
         // Fase 2: copia consistente del modelo bajo mutex
         Monitor_GetSnapshot(&snap);
@@ -50,6 +54,13 @@ void Task_ORION(void *pvParameters) {
         if (!global_wifi_ready) {
             vTaskDelay(3000 / portTICK_RATE_MS);
             continue;
+        }
+
+        do_post = (orion_get_count >= (ORION_GETS_PER_POST - 1));
+        if (do_post) {
+            orion_get_count = 0;
+        } else {
+            orion_get_count++;
         }
 
         /* Fase 5: leer el propio Alarma_src del broker para honrar a un nodo clon */
@@ -91,6 +102,11 @@ void Task_ORION(void *pvParameters) {
         }
         COMM_request.result  = 0;
         COMM_request.command = 0;
+
+        if (!do_post) {
+            vTaskDelay(3000 / portTICK_RATE_MS);
+            continue;
+        }
 
         /* releer el modelo: Alarma_src puede haber cambiado */
         Monitor_GetSnapshot(&snap);
