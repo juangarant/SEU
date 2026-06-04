@@ -60,8 +60,8 @@ extern uint8_t buff_recv[2048];
 
 
 // WIFI
-#define SSID			  "Tus Queridos Vecinos_EXT"
-#define SSID_PASS		  "dame el wifi"
+#define SSID			  "routerSEU"
+#define SSID_PASS		  "00000000"
 
 void WIFI_RESET(void);
 void WIFI_Boot(void);

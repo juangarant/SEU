@@ -24,7 +24,7 @@ float clone_alarma_ldr    = 0.0f;
 uint8_t clone_alarma_activa = 0;
 
 static uint8_t clone_request[256];
-static volatile uint8_t clone_node_index = 0;   /* nodo a clonar 0..26 (lo fija el potenciometro) */
+static volatile uint8_t clone_node_index = 05;   /* nodo a clonar 0..26 (lo fija el potenciometro) */
 static volatile uint8_t clone_silence_request = 0;   /* el boton 2 ha pedido silenciar */
 static uint8_t          clone_seq = 0;               /* numero de secuencia de Alarma_src */
 static uint8_t          clone_post_body[96];

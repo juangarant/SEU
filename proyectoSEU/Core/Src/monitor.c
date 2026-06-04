@@ -223,6 +223,7 @@ static void Process_Buttons(void) {
                 HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
             } else {
                 /* la alarma no suena -> mostrar el modo en los LEDs */
+                //
                 mode_show_until = now + 2000;
             }
         }
@@ -389,6 +390,8 @@ static void Show_Mode_Leds(void) {
         HAL_GPIO_WritePin(LED_PORT[i], LED_PIN[i],
                           (i < n) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
+
+
 
 /* ---- Fase 5: seleccion del nodo a clonar con el potenciometro ---- */
 static void Clone_Select_From_Pot(void) {
